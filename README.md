@@ -21,27 +21,16 @@ A utility script to initialize a new Lamdera application with common utilities a
 - [Lamdera](https://lamdera.com/)
 - [GitHub CLI](https://cli.github.com/) (optional, for repository creation)
 
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/create-lamdera-app.git
-
-# Copy the script to your PATH
-sudo cp create-lamdera-app/create-lamdera-app.sh /usr/local/bin/create-lamdera-app
-
-# Make it executable
-sudo chmod +x /usr/local/bin/create-lamdera-app
-```
-
 ## Usage
+
+The easiest way to use this tool is with `npx`:
 
 ```bash
 # Navigate to where you want to create your project
 cd your/projects/directory
 
-# Run the script
-create-lamdera-app
+# Run the script using npx
+npx create-lamdera-app
 
 # Follow the prompts:
 # 1. Enter your project name
