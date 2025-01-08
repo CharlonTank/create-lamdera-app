@@ -11,12 +11,23 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
+// Handle interruptions gracefully
+process.on('SIGINT', () => {
+  console.log(chalk.yellow('\nProcess interrupted by user'));
+  process.exit(0);
+});
+
 // Helper function to execute commands
 function execCommand(command) {
   try {
-    execSync(command, { stdio: 'inherit' });
+    execSync(command, { stdio: 'inherit', killSignal: 'SIGINT' });
   } catch (error) {
+    if (error.signal === 'SIGINT') {
+      console.log(chalk.yellow('\nProcess interrupted by user'));
+      process.exit(0);
+    }
     console.error(chalk.red(`Error executing command: ${command}`));
+    console.error(chalk.red(error.message));
     process.exit(1);
   }
 }
@@ -58,94 +69,101 @@ function installPackages() {
 }
 
 async function initializeExistingProject() {
-  console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
-  const useCursor = await new Promise(resolve => rl.question('', resolve));
+  try {
+    console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+    const useCursor = await new Promise(resolve => rl.question('', resolve));
 
-  // Create utility files
-  console.log(chalk.blue('Creating utility files...'));
-  createUtilityFiles(process.cwd(), useCursor.toLowerCase() === 'y');
+    // Create utility files
+    console.log(chalk.blue('Creating utility files...'));
+    createUtilityFiles(process.cwd(), useCursor.toLowerCase() === 'y');
 
-  // Install packages
-  installPackages();
+    // Install packages
+    installPackages();
 
-  console.log(chalk.green('Project setup complete!'));
-  rl.close();
+    console.log(chalk.green('Project setup complete!'));
+  } finally {
+    rl.close();
+  }
 }
 
 async function createNewProject() {
-  console.log(chalk.cyan('Enter your project name:'));
-  const projectName = await new Promise(resolve => rl.question('', resolve));
+  try {
+    console.log(chalk.cyan('Enter your project name:'));
+    const projectName = await new Promise(resolve => rl.question('', resolve));
 
-  if (!projectName) {
-    console.error(chalk.red('Project name is required'));
-    process.exit(1);
-  }
-
-  console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
-  const useCursor = await new Promise(resolve => rl.question('', resolve));
-
-  const projectPath = path.join(process.cwd(), projectName);
-
-  // Create project directory
-  fs.mkdirSync(projectPath);
-  process.chdir(projectPath);
-
-  // Initialize Lamdera project
-  console.log(chalk.blue('Initializing Lamdera project...'));
-  execCommand('lamdera init');
-
-  // Install packages
-  installPackages();
-
-  // Create utility files
-  console.log(chalk.blue('Creating utility files...'));
-  createUtilityFiles(projectPath, useCursor.toLowerCase() === 'y');
-
-  // Ask about GitHub repository
-  console.log(chalk.cyan('Do you want to create a GitHub repository? (y/n)'));
-  const createRepo = await new Promise(resolve => rl.question('', resolve));
-
-  if (createRepo.toLowerCase() === 'y') {
-    try {
-      execSync('gh --version', { stdio: 'ignore' });
-      
-      console.log(chalk.cyan('Do you want the repository to be public or private? (pub/priv)'));
-      const repoVisibility = await new Promise(resolve => rl.question('', resolve));
-      
-      const visibilityFlag = repoVisibility === 'pub' ? '--public' : '--private';
-      
-      console.log(chalk.blue('Creating GitHub repository...'));
-      execCommand('git init');
-      execCommand('git add .');
-      execCommand('git commit -m "Initial commit"');
-      execCommand(`gh repo create "${projectName}" ${visibilityFlag} --source=. --remote=origin --push`);
-      
-      console.log(chalk.green('GitHub repository created and code pushed!'));
-    } catch {
-      console.log(chalk.red('GitHub CLI (gh) is not installed. Skipping repository creation.'));
+    if (!projectName) {
+      console.error(chalk.red('Project name is required'));
+      process.exit(1);
     }
+
+    console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+    const useCursor = await new Promise(resolve => rl.question('', resolve));
+
+    const projectPath = path.join(process.cwd(), projectName);
+
+    // Create project directory
+    fs.mkdirSync(projectPath);
+    process.chdir(projectPath);
+
+    // Initialize Lamdera project
+    console.log(chalk.blue('Initializing Lamdera project...'));
+    execCommand('lamdera init');
+
+    // Install packages
+    installPackages();
+
+    // Create utility files
+    console.log(chalk.blue('Creating utility files...'));
+    createUtilityFiles(projectPath, useCursor.toLowerCase() === 'y');
+
+    // Ask about GitHub repository
+    console.log(chalk.cyan('Do you want to create a GitHub repository? (y/n)'));
+    const createRepo = await new Promise(resolve => rl.question('', resolve));
+
+    if (createRepo.toLowerCase() === 'y') {
+      try {
+        execSync('gh --version', { stdio: 'ignore' });
+        
+        console.log(chalk.cyan('Do you want the repository to be public or private? (pub/priv)'));
+        const repoVisibility = await new Promise(resolve => rl.question('', resolve));
+        
+        const visibilityFlag = repoVisibility === 'pub' ? '--public' : '--private';
+        
+        console.log(chalk.blue('Creating GitHub repository...'));
+        execCommand('git init');
+        execCommand('git add .');
+        execCommand('git commit -m "Initial commit"');
+        execCommand(`gh repo create "${projectName}" ${visibilityFlag} --source=. --remote=origin --push`);
+        
+        console.log(chalk.green('GitHub repository created and code pushed!'));
+      } catch {
+        console.log(chalk.red('GitHub CLI (gh) is not installed. Skipping repository creation.'));
+      }
+    }
+
+    console.log(chalk.green('Project setup complete!'));
+    console.log(chalk.blue('To start development server:'));
+    console.log(chalk.cyan(`cd ${projectName}`));
+    console.log(chalk.cyan('./lamdera-dev-watch.sh'));
+  } finally {
+    rl.close();
   }
-
-  console.log(chalk.green('Project setup complete!'));
-  console.log(chalk.blue('To start development server:'));
-  console.log(chalk.cyan(`cd ${projectName}`));
-  console.log(chalk.cyan('./lamdera-dev-watch.sh'));
-
-  rl.close();
 }
 
 async function main() {
-  checkPrerequisites();
+  try {
+    checkPrerequisites();
 
-  const args = process.argv.slice(2);
-  if (args.includes('--init')) {
-    await initializeExistingProject();
-  } else {
-    await createNewProject();
+    const args = process.argv.slice(2);
+    if (args.includes('--init')) {
+      await initializeExistingProject();
+    } else {
+      await createNewProject();
+    }
+  } catch (error) {
+    console.error(chalk.red('An unexpected error occurred:'), error);
+    process.exit(1);
   }
 }
 
-main().catch(error => {
-  console.error(chalk.red('An error occurred:'), error);
-  process.exit(1);
-}); 
+main(); 
