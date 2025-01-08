@@ -1,6 +1,6 @@
 {
-  "name": "create-lamdera-app",
-  "version": "1.0.3",
+  "name": "@charlontank/create-lamdera-app",
+  "version": "1.0.4",
   "description": "A utility script to initialize a new Lamdera application with common utilities and configurations",
   "main": "index.js",
   "bin": {
@@ -24,5 +24,9 @@
   "dependencies": {
     "chalk": "^4.1.2"
   },
-  "preferGlobal": true
+  "preferGlobal": true,
+  "repository": "https://github.com/CharlonTank/create-lamdera-app.git",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 } 
