@@ -50,8 +50,8 @@ function createUtilityFiles(projectPath, useCursor) {
   fs.copyFileSync(path.join(templatePath, 'lamdera-dev-watch.sh'), path.join(projectPath, 'lamdera-dev-watch.sh'));
   fs.chmodSync(path.join(projectPath, 'lamdera-dev-watch.sh'), '755');
   
-  fs.copyFileSync(path.join(templatePath, 'toggle_debugger.py'), path.join(projectPath, 'toggle_debugger.py'));
-  fs.chmodSync(path.join(projectPath, 'toggle_debugger.py'), '755');
+  fs.copyFileSync(path.join(templatePath, 'toggle-debugger.py'), path.join(projectPath, 'toggle-debugger.py'));
+  fs.chmodSync(path.join(projectPath, 'toggle-debugger.py'), '755');
 
   if (useCursor) {
     fs.copyFileSync(path.join(templatePath, '.cursorrules'), path.join(projectPath, '.cursorrules'));
@@ -62,7 +62,7 @@ function createUtilityFiles(projectPath, useCursor) {
 
 // Initialize Lamdera project
 function initializeLamderaProject(projectPath) {
-  const templatePath = path.join(__dirname, 'templates');
+  const templatePath = path.join(__dirname, 'templates', 'lamdera-init');
   
   // Create src directory
   fs.mkdirSync(path.join(projectPath, 'src'), { recursive: true });

@@ -18,7 +18,7 @@ npx create-lamdera-app
 npx create-lamdera-app --init
 
 # 🐛 Toggle backend debugger
-./toggle_debugger.py
+./toggle-debugger.py
 
 # 🔄 Development server with hot-reload for elm-pkg-js
 ./lamdera-dev-watch.sh
