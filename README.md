@@ -8,6 +8,9 @@ A utility script to initialize a new Lamdera application with common utilities a
 # Create a new Lamdera app
 npx create-lamdera-app
 
+# Or initialize an existing Lamdera project with utilities
+npx create-lamdera-app --init
+
 # Toggle backend debugger
 ./toggle_debugger.py
 ```

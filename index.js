@@ -49,9 +49,30 @@ function createUtilityFiles(projectPath, useCursor) {
   }
 }
 
-async function main() {
-  checkPrerequisites();
+// Install required Lamdera packages
+function installPackages() {
+  console.log(chalk.blue('Installing default packages...'));
+  execCommand('yes | lamdera install elm/http');
+  execCommand('yes | lamdera install elm/time');
+  execCommand('yes | lamdera install elm/json');
+}
 
+async function initializeExistingProject() {
+  console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+  const useCursor = await new Promise(resolve => rl.question('', resolve));
+
+  // Create utility files
+  console.log(chalk.blue('Creating utility files...'));
+  createUtilityFiles(process.cwd(), useCursor.toLowerCase() === 'y');
+
+  // Install packages
+  installPackages();
+
+  console.log(chalk.green('Project setup complete!'));
+  rl.close();
+}
+
+async function createNewProject() {
   console.log(chalk.cyan('Enter your project name:'));
   const projectName = await new Promise(resolve => rl.question('', resolve));
 
@@ -73,11 +94,8 @@ async function main() {
   console.log(chalk.blue('Initializing Lamdera project...'));
   execCommand('lamdera init');
 
-  // Install default packages
-  console.log(chalk.blue('Installing default packages...'));
-  execCommand('yes | lamdera install elm/http');
-  execCommand('yes | lamdera install elm/time');
-  execCommand('yes | lamdera install elm/json');
+  // Install packages
+  installPackages();
 
   // Create utility files
   console.log(chalk.blue('Creating utility files...'));
@@ -114,6 +132,17 @@ async function main() {
   console.log(chalk.cyan('./lamdera-dev-watch.sh'));
 
   rl.close();
+}
+
+async function main() {
+  checkPrerequisites();
+
+  const args = process.argv.slice(2);
+  if (args.includes('--init')) {
+    await initializeExistingProject();
+  } else {
+    await createNewProject();
+  }
 }
 
 main().catch(error => {
