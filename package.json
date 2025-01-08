@@ -1,6 +1,6 @@
 {
   "name": "@charlontank/create-lamdera-app",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A utility script to initialize a new Lamdera application with common utilities and configurations",
   "main": "index.js",
   "bin": {
