@@ -32,30 +32,21 @@ function checkPrerequisites() {
 }
 
 // Create utility files
-function createUtilityFiles(projectPath) {
-  // Create .cursorrules
-  fs.writeFileSync(path.join(projectPath, '.cursorrules'), `An action by a user/player will always be a FrontendMsg.
-Then, as a side effect, it's possible that we want to talk to the backend, for that we will use Lamdera.sendToBackend with a ToBackend variant.
-After making some modifications you must run \`lamdera make src/Frontend.elm src/Backend.elm\` so see the compilation errors.
-If you're making some tests: use elm-test to test the tests!
-When you want to create a migration first run lamdera check, then complete the migrations that have been generated.
-When you need to add a dependency, please use yes | lamdera install instead of modifying directly the elm.json
-When you fix compilation errors, look around before going straight to try to fix. Avoid to use anonymous fonctions, because most of the time when you do, it's because you don't understand the compilation error.
-When you're fixing compilation errors from lamdera make, just fix ONE, then compile again to see if you fixed it before going to the next one
-
-DO NOT ADD/MODIFY SOMETHING I DIDN'T ASKED YOU TO DO`);
-
-  // Create lamdera-dev-watch.sh
-  fs.writeFileSync(path.join(projectPath, 'lamdera-dev-watch.sh'), fs.readFileSync(path.join(__dirname, 'templates', 'lamdera-dev-watch.sh')));
+function createUtilityFiles(projectPath, useCursor) {
+  const templatePath = path.join(__dirname, 'templates');
+  
+  // Copy template files
+  fs.copyFileSync(path.join(templatePath, 'lamdera-dev-watch.sh'), path.join(projectPath, 'lamdera-dev-watch.sh'));
   fs.chmodSync(path.join(projectPath, 'lamdera-dev-watch.sh'), '755');
-
-  // Create openeditor.sh
-  fs.writeFileSync(path.join(projectPath, 'openeditor.sh'), '#!/bin/bash\n/usr/local/bin/cursor -g "$1:$2:$3"');
-  fs.chmodSync(path.join(projectPath, 'openeditor.sh'), '755');
-
-  // Create toggle_debugger.py
-  fs.writeFileSync(path.join(projectPath, 'toggle_debugger.py'), fs.readFileSync(path.join(__dirname, 'templates', 'toggle_debugger.py')));
+  
+  fs.copyFileSync(path.join(templatePath, 'toggle_debugger.py'), path.join(projectPath, 'toggle_debugger.py'));
   fs.chmodSync(path.join(projectPath, 'toggle_debugger.py'), '755');
+
+  if (useCursor) {
+    fs.copyFileSync(path.join(templatePath, '.cursorrules'), path.join(projectPath, '.cursorrules'));
+    fs.copyFileSync(path.join(templatePath, 'openEditor.sh'), path.join(projectPath, 'openEditor.sh'));
+    fs.chmodSync(path.join(projectPath, 'openEditor.sh'), '755');
+  }
 }
 
 async function main() {
@@ -68,6 +59,9 @@ async function main() {
     console.error(chalk.red('Project name is required'));
     process.exit(1);
   }
+
+  console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+  const useCursor = await new Promise(resolve => rl.question('', resolve));
 
   const projectPath = path.join(process.cwd(), projectName);
 
@@ -87,7 +81,7 @@ async function main() {
 
   // Create utility files
   console.log(chalk.blue('Creating utility files...'));
-  createUtilityFiles(projectPath);
+  createUtilityFiles(projectPath, useCursor.toLowerCase() === 'y');
 
   // Ask about GitHub repository
   console.log(chalk.cyan('Do you want to create a GitHub repository? (y/n)'));
