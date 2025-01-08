@@ -60,6 +60,26 @@ function createUtilityFiles(projectPath, useCursor) {
   }
 }
 
+// Initialize Lamdera project
+function initializeLamderaProject(projectPath) {
+  const templatePath = path.join(__dirname, 'templates');
+  
+  // Create src directory
+  fs.mkdirSync(path.join(projectPath, 'src'), { recursive: true });
+  
+  // Copy elm.json
+  fs.copyFileSync(path.join(templatePath, 'elm.json'), path.join(projectPath, 'elm.json'));
+  
+  // Copy source files
+  const sourceFiles = ['Backend.elm', 'Frontend.elm', 'Types.elm', 'Env.elm'];
+  sourceFiles.forEach(file => {
+    fs.copyFileSync(
+      path.join(templatePath, 'src', file),
+      path.join(projectPath, 'src', file)
+    );
+  });
+}
+
 // Install required Lamdera packages
 function installPackages() {
   console.log(chalk.blue('Installing default packages...'));
@@ -107,7 +127,7 @@ async function createNewProject() {
 
     // Initialize Lamdera project
     console.log(chalk.blue('Initializing Lamdera project...'));
-    execCommand('yes Y | lamdera init');
+    initializeLamderaProject(projectPath);
 
     // Install packages
     installPackages();
