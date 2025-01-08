@@ -107,7 +107,7 @@ async function createNewProject() {
 
     // Initialize Lamdera project
     console.log(chalk.blue('Initializing Lamdera project...'));
-    execCommand('lamdera init');
+    execCommand('yes Y | lamdera init');
 
     // Install packages
     installPackages();
