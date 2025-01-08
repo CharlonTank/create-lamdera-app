@@ -5,17 +5,17 @@
 ## 🛠️ Quick Start
 
 ```bash
-npx create-lamdera-app
+npx @CharlonTank/create-lamdera-app
 ```
 
 ## ⚡️ Features
 
 ```bash
 # 🆕 Create a new project
-npx create-lamdera-app
+npx @CharlonTank/create-lamdera-app
 
 # 🔧 Add utilities to existing project
-npx create-lamdera-app --init
+npx @CharlonTank/create-lamdera-app --init
 
 # 🐛 Toggle backend debugger
 ./toggle-debugger.py
