@@ -4,8 +4,7 @@
   "description": "A utility script to initialize a new Lamdera application with common utilities and configurations",
   "main": "index.js",
   "bin": {
-    "create-lamdera-app": "./index.js",
-    "@charlontank/create-lamdera-app": "./index.js"
+    "create-lamdera-app": "index.js"
   },
   "files": [
     "index.js",
@@ -26,7 +25,10 @@
     "chalk": "^4.1.2"
   },
   "preferGlobal": true,
-  "repository": "https://github.com/CharlonTank/create-lamdera-app.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharlonTank/create-lamdera-app.git"
+  },
   "publishConfig": {
     "access": "public"
   }
