@@ -65,28 +65,29 @@ function createUtilityFiles(projectPath, useCursor) {
 function initializeLamderaProject(projectPath) {
   const templatePath = path.join(__dirname, 'templates', 'lamdera-init');
 
-  // Create src directory
-  fs.mkdirSync(path.join(projectPath, 'src'), { recursive: true });
+  // Copy all files from template
+  const copyRecursive = (src, dest) => {
+    const exists = fs.existsSync(src);
+    const stats = exists && fs.statSync(src);
+    const isDirectory = exists && stats.isDirectory();
+    const basename = path.basename(src);
 
-  // Copy elm.json
-  fs.copyFileSync(path.join(templatePath, 'elm.json'), path.join(projectPath, 'elm.json'));
+    // Skip .DS_Store and elm-stuff
+    if (basename === '.DS_Store' || basename === 'elm-stuff') {
+      return;
+    }
 
-  // Copy source files
-  const sourceFiles = ['Backend.elm', 'Frontend.elm', 'Types.elm', 'Env.elm'];
-  sourceFiles.forEach(file => {
-    fs.copyFileSync(
-      path.join(templatePath, 'src', file),
-      path.join(projectPath, 'src', file)
-    );
-  });
-}
+    if (isDirectory) {
+      fs.mkdirSync(dest, { recursive: true });
+      fs.readdirSync(src).forEach(childItemName => {
+        copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
+      });
+    } else {
+      fs.copyFileSync(src, dest);
+    }
+  };
 
-// Install required Lamdera packages
-function installPackages() {
-  console.log(chalk.blue('Installing default packages...'));
-  execCommand('yes | lamdera install elm/http');
-  execCommand('yes | lamdera install elm/time');
-  execCommand('yes | lamdera install elm/json');
+  copyRecursive(templatePath, projectPath);
 }
 
 async function initializeExistingProject() {
