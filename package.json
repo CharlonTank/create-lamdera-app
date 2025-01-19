@@ -1,10 +1,11 @@
 {
-  "name": "@charlontank/create-lamdera-app",
-  "version": "1.0.10",
+  "name": "create-lamdera-app",
+  "version": "1.0.11",
   "description": "A utility script to initialize a new Lamdera application with common utilities and configurations",
   "main": "index.js",
   "bin": {
-    "create-lamdera-app": "./index.js"
+    "create-lamdera-app": "./index.js",
+    "@charlontank/create-lamdera-app": "./index.js"
   },
   "files": [
     "index.js",
@@ -27,6 +28,6 @@
   "preferGlobal": true,
   "repository": "https://github.com/CharlonTank/create-lamdera-app.git",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   }
 } 

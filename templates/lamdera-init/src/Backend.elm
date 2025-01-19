@@ -4,10 +4,6 @@ import Lamdera exposing (ClientId, SessionId)
 import Types exposing (..)
 
 
-type alias Model =
-    BackendModel
-
-
 app =
     Lamdera.backend
         { init = init
@@ -17,21 +13,21 @@ app =
         }
 
 
-init : ( Model, Cmd BackendMsg )
+init : ( BackendModel, Cmd BackendMsg )
 init =
     ( { message = "Hello!" }
     , Cmd.none
     )
 
 
-update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
+update : BackendMsg -> BackendModel -> ( BackendModel, Cmd BackendMsg )
 update msg model =
     case msg of
         NoOpBackendMsg ->
             ( model, Cmd.none )
 
 
-updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
+updateFromFrontend : SessionId -> ClientId -> ToBackend -> BackendModel -> ( BackendModel, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
     case msg of
         NoOpToBackend ->

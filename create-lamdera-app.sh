@@ -49,12 +49,6 @@ if [ "$use_cursor" = "y" ] || [ "$use_cursor" = "Y" ]; then
     chmod +x openEditor.sh
 fi
 
-# Install default packages
-echo -e "${BLUE}Installing default packages...${NC}"
-yes | lamdera install elm/http
-yes | lamdera install elm/time
-yes | lamdera install elm/json
-
 # Ask if user wants to create a GitHub repository
 echo -e "${CYAN}Do you want to create a GitHub repository? (y/n)${NC}"
 read create_repo
