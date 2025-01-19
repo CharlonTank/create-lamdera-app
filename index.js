@@ -99,9 +99,6 @@ async function initializeExistingProject() {
     console.log(chalk.blue('Creating utility files...'));
     createUtilityFiles(process.cwd(), useCursor.toLowerCase() === 'y');
 
-    // Install packages
-    installPackages();
-
     console.log(chalk.green('Project setup complete!'));
   } finally {
     rl.close();
