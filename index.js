@@ -128,9 +128,6 @@ async function createNewProject() {
     console.log(chalk.blue('Initializing Lamdera project...'));
     initializeLamderaProject(projectPath);
 
-    // Install packages
-    installPackages();
-
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
     createUtilityFiles(projectPath, useCursor.toLowerCase() === 'y');
