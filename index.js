@@ -5,6 +5,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const { version } = require('./package.json');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -45,11 +46,11 @@ function checkPrerequisites() {
 // Create utility files
 function createUtilityFiles(projectPath, useCursor) {
   const templatePath = path.join(__dirname, 'templates');
-  
+
   // Copy template files
   fs.copyFileSync(path.join(templatePath, 'lamdera-dev-watch.sh'), path.join(projectPath, 'lamdera-dev-watch.sh'));
   fs.chmodSync(path.join(projectPath, 'lamdera-dev-watch.sh'), '755');
-  
+
   fs.copyFileSync(path.join(templatePath, 'toggle-debugger.py'), path.join(projectPath, 'toggle-debugger.py'));
   fs.chmodSync(path.join(projectPath, 'toggle-debugger.py'), '755');
 
@@ -63,13 +64,13 @@ function createUtilityFiles(projectPath, useCursor) {
 // Initialize Lamdera project
 function initializeLamderaProject(projectPath) {
   const templatePath = path.join(__dirname, 'templates', 'lamdera-init');
-  
+
   // Create src directory
   fs.mkdirSync(path.join(projectPath, 'src'), { recursive: true });
-  
+
   // Copy elm.json
   fs.copyFileSync(path.join(templatePath, 'elm.json'), path.join(projectPath, 'elm.json'));
-  
+
   // Copy source files
   const sourceFiles = ['Backend.elm', 'Frontend.elm', 'Types.elm', 'Env.elm'];
   sourceFiles.forEach(file => {
@@ -143,18 +144,18 @@ async function createNewProject() {
     if (createRepo.toLowerCase() === 'y') {
       try {
         execSync('gh --version', { stdio: 'ignore' });
-        
+
         console.log(chalk.cyan('Do you want the repository to be public or private? (pub/priv)'));
         const repoVisibility = await new Promise(resolve => rl.question('', resolve));
-        
+
         const visibilityFlag = repoVisibility === 'pub' ? '--public' : '--private';
-        
+
         console.log(chalk.blue('Creating GitHub repository...'));
         execCommand('git init');
         execCommand('git add .');
         execCommand('git commit -m "Initial commit"');
         execCommand(`gh repo create "${projectName}" ${visibilityFlag} --source=. --remote=origin --push`);
-        
+
         console.log(chalk.green('GitHub repository created and code pushed!'));
       } catch {
         console.log(chalk.red('GitHub CLI (gh) is not installed. Skipping repository creation.'));
@@ -172,9 +173,15 @@ async function createNewProject() {
 
 async function main() {
   try {
+    const args = process.argv.slice(2);
+
+    if (args.includes('--version')) {
+      console.log(version);
+      process.exit(0);
+    }
+
     checkPrerequisites();
 
-    const args = process.argv.slice(2);
     if (args.includes('--init')) {
       await initializeExistingProject();
     } else {
