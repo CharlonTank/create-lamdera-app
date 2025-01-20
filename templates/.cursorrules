@@ -12,6 +12,17 @@
         "oneAtATime": "Fix ONE compilation error at a time, then recompile"
     },
     "design": "Make it responsive by default",
-    "generalConstraint": "DO NOT ADD/MODIFY SOMETHING NOT EXPLICITLY REQUESTED",
-    "images": "Store all images in the public directory. Use unsplash-dl -h to download images from Unsplash"
+    "generalConstraint": [
+        "DO NOT ADD/MODIFY SOMETHING NOT EXPLICITLY REQUESTED",
+        "NEVER DO THIS: type alias Model = FrontendModel"
+    ],
+    "images": {
+        "storage": "Store them DIRECTLY UNDER public directory",
+        "help": "For more options and details use 'unsplash-dl --help'",
+        "examples": {
+            "mountains": "unsplash-dl download \"mountains\" -n 3 -s full",
+            "cats": "unsplash-dl download \"cats\" -n 10 -o ./cat-photos",
+            "nature": "unsplash-dl download \"nature\""
+        }
+    }
 }
