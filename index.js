@@ -7,10 +7,111 @@ const path = require('path');
 const readline = require('readline');
 const { version } = require('./package.json');
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+// Parse command line arguments early
+const args = process.argv.slice(2);
+
+// Parse named arguments
+const parseArgs = () => {
+  const parsed = {
+    init: false,
+    name: null,
+    cursor: null,
+    github: null,
+    visibility: 'private'
+  };
+  
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    const nextArg = args[i + 1];
+    
+    switch(arg) {
+      case '--init':
+        parsed.init = true;
+        break;
+      case '--name':
+      case '-n':
+        parsed.name = nextArg;
+        i++;
+        break;
+      case '--cursor':
+        parsed.cursor = nextArg === 'yes' || nextArg === 'y';
+        i++;
+        break;
+      case '--no-cursor':
+        parsed.cursor = false;
+        break;
+      case '--github':
+        parsed.github = nextArg === 'yes' || nextArg === 'y';
+        i++;
+        break;
+      case '--no-github':
+        parsed.github = false;
+        break;
+      case '--public':
+        parsed.visibility = 'public';
+        break;
+      case '--private':
+        parsed.visibility = 'private';
+        break;
+    }
+  }
+  
+  return parsed;
+};
+
+const parsedArgs = parseArgs();
+
+// Handle --version and --help before creating readline interface
+if (args.includes('--version')) {
+  console.log(version);
+  process.exit(0);
+}
+
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(`
+${chalk.bold('Create Lamdera App')} v${version}
+
+${chalk.bold('Usage:')}
+  npx @CharlonTank/create-lamdera-app [options]
+
+${chalk.bold('Options:')}
+  --init              Add utilities to an existing Lamdera project
+  --name, -n <name>   Project name (required for new projects in non-interactive mode)
+  --cursor <yes|no>   Use Cursor editor (yes/no)
+  --no-cursor         Don't use Cursor editor
+  --github <yes|no>   Create GitHub repository (yes/no)
+  --no-github         Don't create GitHub repository
+  --public            Make GitHub repository public
+  --private           Make GitHub repository private (default)
+  --version           Show version number
+  --help, -h          Show this help message
+
+${chalk.bold('Examples:')}
+  ${chalk.gray('# Create a new Lamdera project interactively')}
+  npx @CharlonTank/create-lamdera-app
+
+  ${chalk.gray('# Create a new project without prompts')}
+  npx @CharlonTank/create-lamdera-app --name my-app --no-cursor --no-github
+
+  ${chalk.gray('# Create a project with Cursor and public GitHub repo')}
+  npx @CharlonTank/create-lamdera-app --name my-app --cursor yes --github yes --public
+
+  ${chalk.gray('# Add utilities to existing project')}
+  npx @CharlonTank/create-lamdera-app --init --cursor yes
+`);
+  process.exit(0);
+}
+
+// Only create readline interface if we need it (no args provided)
+let rl = null;
+const isInteractive = !parsedArgs.name && !parsedArgs.init;
+
+if (isInteractive || (parsedArgs.init && parsedArgs.cursor === null)) {
+  rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+}
 
 // Handle interruptions gracefully
 process.on('SIGINT', () => {
@@ -92,33 +193,63 @@ function initializeLamderaProject(projectPath) {
 
 async function initializeExistingProject() {
   try {
-    console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
-    const useCursor = await new Promise(resolve => rl.question('', resolve));
+    let useCursor = parsedArgs.cursor;
+    
+    // Only ask if not provided via CLI
+    if (useCursor === null && rl) {
+      console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      useCursor = answer.toLowerCase() === 'y';
+    }
 
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
-    createUtilityFiles(process.cwd(), useCursor.toLowerCase() === 'y');
+    createUtilityFiles(process.cwd(), useCursor);
 
     console.log(chalk.green('Project setup complete!'));
   } finally {
-    rl.close();
+    if (rl) {
+      rl.close();
+    }
   }
 }
 
 async function createNewProject() {
   try {
-    console.log(chalk.cyan('Enter your project name:'));
-    const projectName = await new Promise(resolve => rl.question('', resolve));
+    let projectName = parsedArgs.name;
+    let useCursor = parsedArgs.cursor;
+    let createRepo = parsedArgs.github;
+    let repoVisibility = parsedArgs.visibility;
 
+    // Get project name if not provided
     if (!projectName) {
-      console.error(chalk.red('Project name is required'));
-      process.exit(1);
+      if (!rl) {
+        console.error(chalk.red('Project name is required. Use --name <name> or run interactively.'));
+        process.exit(1);
+      }
+      console.log(chalk.cyan('Enter your project name:'));
+      projectName = await new Promise(resolve => rl.question('', resolve));
+      
+      if (!projectName) {
+        console.error(chalk.red('Project name is required'));
+        process.exit(1);
+      }
     }
 
-    console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
-    const useCursor = await new Promise(resolve => rl.question('', resolve));
+    // Get cursor preference if not provided
+    if (useCursor === null && rl) {
+      console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      useCursor = answer.toLowerCase() === 'y';
+    }
 
     const projectPath = path.join(process.cwd(), projectName);
+
+    // Check if directory already exists
+    if (fs.existsSync(projectPath)) {
+      console.error(chalk.red(`Directory '${projectName}' already exists`));
+      process.exit(1);
+    }
 
     // Create project directory
     fs.mkdirSync(projectPath);
@@ -130,20 +261,27 @@ async function createNewProject() {
 
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
-    createUtilityFiles(projectPath, useCursor.toLowerCase() === 'y');
+    createUtilityFiles(projectPath, useCursor);
 
-    // Ask about GitHub repository
-    console.log(chalk.cyan('Do you want to create a GitHub repository? (y/n)'));
-    const createRepo = await new Promise(resolve => rl.question('', resolve));
+    // Handle GitHub repository
+    if (createRepo === null && rl) {
+      console.log(chalk.cyan('Do you want to create a GitHub repository? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      createRepo = answer.toLowerCase() === 'y';
+    }
 
-    if (createRepo.toLowerCase() === 'y') {
+    if (createRepo) {
       try {
         execSync('gh --version', { stdio: 'ignore' });
 
-        console.log(chalk.cyan('Do you want the repository to be public or private? (pub/priv)'));
-        const repoVisibility = await new Promise(resolve => rl.question('', resolve));
+        // Get visibility preference if not set
+        if (createRepo && repoVisibility === 'private' && rl && parsedArgs.visibility === 'private' && !args.includes('--private')) {
+          console.log(chalk.cyan('Do you want the repository to be public or private? (pub/priv)'));
+          const answer = await new Promise(resolve => rl.question('', resolve));
+          repoVisibility = answer === 'pub' ? 'public' : 'private';
+        }
 
-        const visibilityFlag = repoVisibility === 'pub' ? '--public' : '--private';
+        const visibilityFlag = repoVisibility === 'public' ? '--public' : '--private';
 
         console.log(chalk.blue('Creating GitHub repository...'));
         execCommand('git init');
@@ -162,22 +300,17 @@ async function createNewProject() {
     console.log(chalk.cyan(`cd ${projectName}`));
     console.log(chalk.cyan('./lamdera-dev-watch.sh'));
   } finally {
-    rl.close();
+    if (rl) {
+      rl.close();
+    }
   }
 }
 
 async function main() {
   try {
-    const args = process.argv.slice(2);
-
-    if (args.includes('--version')) {
-      console.log(version);
-      process.exit(0);
-    }
-
     checkPrerequisites();
 
-    if (args.includes('--init')) {
+    if (parsedArgs.init) {
       await initializeExistingProject();
     } else {
       await createNewProject();

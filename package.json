@@ -1,6 +1,6 @@
 {
   "name": "create-lamdera-app",
-  "version": "1.0.20",
+  "version": "1.1.0",
   "description": "A utility script to initialize a new Lamdera application with common utilities and configurations",
   "main": "index.js",
   "bin": {
@@ -11,7 +11,9 @@
     "templates/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "lamdera",
@@ -31,5 +33,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^30.0.0"
   }
 }
