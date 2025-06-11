@@ -14,6 +14,13 @@ npx @CharlonTank/create-lamdera-app
 # 🆕 Create a new project
 npx @CharlonTank/create-lamdera-app
 
+# 🎨 Create with Tailwind CSS
+npx @CharlonTank/create-lamdera-app --tailwind yes
+
+# Then use:
+npm start          # Standard mode
+npm run start:hot  # With elm-pkg-js hot-reload
+
 # 🔧 Add utilities to existing project
 npx @CharlonTank/create-lamdera-app --init
 
@@ -28,9 +35,11 @@ npx @CharlonTank/create-lamdera-app --init
 
 - `.cursorrules` - AI coding guidelines for Lamdera best practices
 - `lamdera-dev-watch.sh` - Smart development server with auto-reload
+- **Tailwind CSS** - Optional utility-first CSS framework integration
 
 ## 📦 Prerequisites
 
 - [Lamdera](https://lamdera.com/) - Required
 - [GitHub CLI](https://cli.github.com/) - Optional, for repo creation
 - [Cursor](https://cursor.sh/) - Optional, for AI-enhanced development
+- [Node.js](https://nodejs.org/) - Required only if using Tailwind CSS

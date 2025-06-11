@@ -44,6 +44,7 @@ When working on this codebase:
 1. **Template Updates**: Any changes to the Lamdera starter code should be made in `/templates/lamdera-init/src/`
 2. **CLI Logic**: The main scaffolding logic is in `index.js` - it checks for Lamdera installation, prompts for configuration, and copies templates
 3. **Utility Scripts**: Shell and Python scripts in `/templates/` are copied as-is to new projects
+4. **Tailwind CSS**: The `setupTailwind` function handles npm initialization, Tailwind config, and script setup
 
 ## Lamdera-Specific Guidelines
 

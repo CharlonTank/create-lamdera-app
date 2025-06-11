@@ -34,6 +34,7 @@ describe('create-lamdera-app CLI', () => {
       expect(output).toContain('--name');
       expect(output).toContain('--cursor');
       expect(output).toContain('--github');
+      expect(output).toContain('--tailwind');
     });
 
     test('should display help with -h flag', () => {
@@ -99,6 +100,42 @@ describe('create-lamdera-app CLI', () => {
       const projectPath = path.join(tempDir, projectName);
       expect(fs.existsSync(path.join(projectPath, '.cursorrules'))).toBe(true);
       expect(fs.existsSync(path.join(projectPath, 'openEditor.sh'))).toBe(true);
+    });
+
+    test('should create project with Tailwind CSS', () => {
+      const projectName = 'test-tailwind-project';
+      
+      // Mock lamdera command
+      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
+      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
+      
+      // Mock npm and npx commands - npm init needs to create package.json
+      const npmScript = `#!/bin/bash
+if [ "$1" = "init" ]; then
+  echo '{"name":"test","version":"1.0.0","scripts":{}}' > package.json
+fi
+exit 0`;
+      fs.writeFileSync(path.join(tempDir, 'npm'), npmScript);
+      fs.chmodSync(path.join(tempDir, 'npm'), '755');
+      fs.writeFileSync(path.join(tempDir, 'npx'), '#!/bin/bash\nexit 0');
+      fs.chmodSync(path.join(tempDir, 'npx'), '755');
+      
+      const output = execSync(
+        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --tailwind yes --no-cursor --no-github`,
+        { encoding: 'utf8' }
+      );
+      
+      expect(output).toContain('Setting up Tailwind CSS');
+      expect(output).toContain('Tailwind CSS setup complete!');
+      
+      const projectPath = path.join(tempDir, projectName);
+      expect(fs.existsSync(path.join(projectPath, 'src/styles.css'))).toBe(true);
+      expect(fs.existsSync(path.join(projectPath, 'tailwind.config.js'))).toBe(true);
+      expect(fs.existsSync(path.join(projectPath, 'package.json'))).toBe(true);
+      
+      // Check package.json has the start script
+      const packageJson = JSON.parse(fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8'));
+      expect(packageJson.scripts.start).toContain('tailwindcss');
     });
   });
 

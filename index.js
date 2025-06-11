@@ -17,7 +17,8 @@ const parseArgs = () => {
     name: null,
     cursor: null,
     github: null,
-    visibility: 'private'
+    visibility: 'private',
+    tailwind: null
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -53,6 +54,13 @@ const parseArgs = () => {
       case '--private':
         parsed.visibility = 'private';
         break;
+      case '--tailwind':
+        parsed.tailwind = nextArg === 'yes' || nextArg === 'y';
+        i++;
+        break;
+      case '--no-tailwind':
+        parsed.tailwind = false;
+        break;
     }
   }
   
@@ -83,6 +91,8 @@ ${chalk.bold('Options:')}
   --no-github         Don't create GitHub repository
   --public            Make GitHub repository public
   --private           Make GitHub repository private (default)
+  --tailwind <yes|no> Add Tailwind CSS setup (yes/no)
+  --no-tailwind       Don't add Tailwind CSS
   --version           Show version number
   --help, -h          Show this help message
 
@@ -95,6 +105,9 @@ ${chalk.bold('Examples:')}
 
   ${chalk.gray('# Create a project with Cursor and public GitHub repo')}
   npx @CharlonTank/create-lamdera-app --name my-app --cursor yes --github yes --public
+
+  ${chalk.gray('# Create a project with Tailwind CSS')}
+  npx @CharlonTank/create-lamdera-app --name my-app --tailwind yes --no-cursor
 
   ${chalk.gray('# Add utilities to existing project')}
   npx @CharlonTank/create-lamdera-app --init --cursor yes
@@ -162,6 +175,86 @@ function createUtilityFiles(projectPath, useCursor) {
   }
 }
 
+// Initialize Tailwind CSS
+function setupTailwind(projectPath, baseDir) {
+  console.log(chalk.blue('Setting up Tailwind CSS...'));
+  
+  // Save current directory and change to project path
+  const originalDir = process.cwd();
+  process.chdir(projectPath);
+  
+  try {
+    // Initialize npm
+    execCommand('npm init -y');
+    
+    // Wait a moment and verify package.json was created
+    if (!fs.existsSync('./package.json')) {
+      throw new Error('Failed to create package.json');
+    }
+    
+    // Install dependencies
+    execCommand('npm install tailwindcss@^3');
+    execCommand('npm install --save-dev run-pty');
+    
+    // Create tailwind.config.js content manually (since v4 doesn't have init)
+    const tailwindConfig = `module.exports = {
+  content: [
+    "./src/**/*.{elm,js,html}",
+    "./*.html"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}`;
+  
+    fs.writeFileSync('./tailwind.config.js', tailwindConfig);
+    
+    // Create src/styles.css
+    const stylesCss = `@tailwind base;
+@tailwind components;
+@tailwind utilities;`;
+    
+    fs.writeFileSync('./src/styles.css', stylesCss);
+  
+    // Update head.html to include Tailwind styles (we're in the project directory)
+    const headPath = './head.html';
+    let headContent = fs.readFileSync(headPath, 'utf8');
+  
+  // Add the Tailwind CSS link before the closing style tag
+  headContent = headContent.replace(
+    '</style>',
+    '</style>\n<link rel="stylesheet" href="/styles.css">'
+  );
+  
+  fs.writeFileSync(headPath, headContent);
+  
+    // Update package.json scripts (it's in the current directory after chdir)
+    const packageJsonPath = './package.json';
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  
+  packageJson.scripts = {
+    ...packageJson.scripts,
+    "start": "run-pty % lamdera live % tailwindcss -i ./src/styles.css -o ./public/styles.css --watch",
+    "start:hot": "run-pty % ./lamdera-dev-watch.sh % tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"
+  };
+  
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  
+    // Update .gitignore for Tailwind
+    const templatePath = path.join(baseDir, 'templates');
+    fs.copyFileSync(path.join(templatePath, 'tailwind.gitignore'), './.gitignore');
+    
+    // Replace Frontend.elm with Tailwind example version
+    fs.copyFileSync(path.join(templatePath, 'tailwind-frontend.elm'), './src/Frontend.elm');
+    
+    console.log(chalk.green('Tailwind CSS setup complete!'));
+  } finally {
+    // Restore original directory
+    process.chdir(originalDir);
+  }
+}
+
 // Initialize Lamdera project
 function initializeLamderaProject(projectPath) {
   const templatePath = path.join(__dirname, 'templates', 'lamdera-init');
@@ -220,6 +313,7 @@ async function createNewProject() {
     let useCursor = parsedArgs.cursor;
     let createRepo = parsedArgs.github;
     let repoVisibility = parsedArgs.visibility;
+    let useTailwind = parsedArgs.tailwind;
 
     // Get project name if not provided
     if (!projectName) {
@@ -243,6 +337,13 @@ async function createNewProject() {
       useCursor = answer.toLowerCase() === 'y';
     }
 
+    // Get Tailwind preference if not provided
+    if (useTailwind === null && rl) {
+      console.log(chalk.cyan('Do you want to use Tailwind CSS? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      useTailwind = answer.toLowerCase() === 'y';
+    }
+
     const projectPath = path.join(process.cwd(), projectName);
 
     // Check if directory already exists
@@ -262,6 +363,11 @@ async function createNewProject() {
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
     createUtilityFiles(projectPath, useCursor);
+
+    // Set up Tailwind if requested
+    if (useTailwind) {
+      setupTailwind(projectPath, __dirname);
+    }
 
     // Handle GitHub repository
     if (createRepo === null && rl) {
@@ -298,7 +404,15 @@ async function createNewProject() {
     console.log(chalk.green('Project setup complete!'));
     console.log(chalk.blue('To start development server:'));
     console.log(chalk.cyan(`cd ${projectName}`));
-    console.log(chalk.cyan('./lamdera-dev-watch.sh'));
+    if (useTailwind) {
+      console.log(chalk.cyan('npm start'));
+      console.log(chalk.gray('(This runs both Lamdera and Tailwind CSS watcher)'));
+      console.log('');
+      console.log(chalk.blue('For hot-reload with elm-pkg-js:'));
+      console.log(chalk.cyan('npm run start:hot'));
+    } else {
+      console.log(chalk.cyan('./lamdera-dev-watch.sh'));
+    }
   } finally {
     if (rl) {
       rl.close();
