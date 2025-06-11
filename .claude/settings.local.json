@@ -15,7 +15,9 @@
       "Bash(./lamdera-dev-watch.sh:*)",
       "Bash(mv:*)",
       "Bash(true)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm publish:*)"
     ],
     "deny": []
   }

@@ -32,19 +32,33 @@ const parseArgs = () => {
         break;
       case '--name':
       case '-n':
+        if (!nextArg || nextArg.trim() === '') {
+          console.error(chalk.red('Project name cannot be empty'));
+          process.exit(1);
+        }
         parsed.name = nextArg;
         i++;
         break;
       case '--cursor':
-        parsed.cursor = nextArg === 'yes' || nextArg === 'y';
-        i++;
+        if (nextArg && (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n')) {
+          parsed.cursor = nextArg === 'yes' || nextArg === 'y';
+          i++;
+        } else if (!nextArg || (nextArg !== 'yes' && nextArg !== 'no' && nextArg !== 'y' && nextArg !== 'n')) {
+          console.error(chalk.red('--cursor must be yes or no'));
+          process.exit(1);
+        }
         break;
       case '--no-cursor':
         parsed.cursor = false;
         break;
       case '--github':
-        parsed.github = nextArg === 'yes' || nextArg === 'y';
-        i++;
+        if (nextArg && (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n')) {
+          parsed.github = nextArg === 'yes' || nextArg === 'y';
+          i++;
+        } else if (!nextArg || (nextArg !== 'yes' && nextArg !== 'no' && nextArg !== 'y' && nextArg !== 'n')) {
+          console.error(chalk.red('--github must be yes or no'));
+          process.exit(1);
+        }
         break;
       case '--no-github':
         parsed.github = false;
@@ -198,7 +212,7 @@ function createUtilityFiles(projectPath, useCursor) {
 }
 
 // Initialize Tailwind CSS
-function setupTailwind(projectPath, baseDir) {
+function setupTailwind(projectPath, baseDir, skipFrontend = false) {
   console.log(chalk.blue('Setting up Tailwind CSS...'));
   
   // Save current directory and change to project path
@@ -241,15 +255,17 @@ function setupTailwind(projectPath, baseDir) {
   
     // Update head.html to include Tailwind styles (we're in the project directory)
     const headPath = './head.html';
-    let headContent = fs.readFileSync(headPath, 'utf8');
-  
-  // Add the Tailwind CSS link before the closing style tag
-  headContent = headContent.replace(
-    '</style>',
-    '</style>\n<link rel="stylesheet" href="/styles.css">'
-  );
-  
-  fs.writeFileSync(headPath, headContent);
+    if (fs.existsSync(headPath)) {
+      let headContent = fs.readFileSync(headPath, 'utf8');
+    
+      // Add the Tailwind CSS link before the closing style tag
+      headContent = headContent.replace(
+        '</style>',
+        '</style>\n<link rel="stylesheet" href="/styles.css">'
+      );
+      
+      fs.writeFileSync(headPath, headContent);
+    }
   
     // Update package.json scripts (it's in the current directory after chdir)
     const packageJsonPath = './package.json';
@@ -267,8 +283,10 @@ function setupTailwind(projectPath, baseDir) {
     const templatePath = path.join(baseDir, 'templates');
     fs.copyFileSync(path.join(templatePath, 'tailwind.gitignore'), './.gitignore');
     
-    // Replace Frontend.elm with Tailwind example version
-    fs.copyFileSync(path.join(templatePath, 'tailwind-frontend.elm'), './src/Frontend.elm');
+    // Replace Frontend.elm with Tailwind example version (only if not using test mode)
+    if (!skipFrontend) {
+      fs.copyFileSync(path.join(templatePath, 'tailwind-frontend.elm'), './src/Frontend.elm');
+    }
     
     console.log(chalk.green('Tailwind CSS setup complete!'));
   } finally {
@@ -334,6 +352,18 @@ function initializeLamderaProject(projectPath) {
 }
 
 async function initializeExistingProject() {
+  // Check for invalid flag combinations
+  if (parsedArgs.name) {
+    console.error(chalk.red('Cannot use --name with --init'));
+    process.exit(1);
+  }
+
+  // Check if already in a Lamdera project
+  if (!fs.existsSync('./elm.json')) {
+    console.error(chalk.red('No elm.json found. Please run this command in an existing Lamdera project directory.'));
+    process.exit(1);
+  }
+
   try {
     let useCursor = parsedArgs.cursor;
     
@@ -351,6 +381,19 @@ async function initializeExistingProject() {
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
     createUtilityFiles(process.cwd(), useCursor);
+    
+    // Check if user wants Tailwind
+    let useTailwind = parsedArgs.tailwind;
+    if (useTailwind === null && rl) {
+      console.log(chalk.cyan('Do you want to use Tailwind CSS? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      useTailwind = answer.toLowerCase() === 'y';
+    }
+    
+    // Set up Tailwind if requested
+    if (useTailwind) {
+      setupTailwind(process.cwd(), __dirname, true); // Skip frontend since it already exists
+    }
 
     console.log(chalk.green('Project setup complete!'));
   } finally {
@@ -382,6 +425,22 @@ async function createNewProject() {
         console.error(chalk.red('Project name is required'));
         process.exit(1);
       }
+    }
+
+    // Validate project name
+    if (!projectName || projectName.trim() === '') {
+      console.error(chalk.red('Project name cannot be empty'));
+      process.exit(1);
+    }
+    
+    if (projectName.includes(' ')) {
+      console.error(chalk.red('Project name cannot contain spaces'));
+      process.exit(1);
+    }
+    
+    if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
+      console.error(chalk.red('Project name can only contain letters, numbers, hyphens, and underscores'));
+      process.exit(1);
     }
 
     // Get cursor preference if not provided
@@ -431,7 +490,7 @@ async function createNewProject() {
 
     // Set up Tailwind if requested
     if (useTailwind && !useTest) {
-      setupTailwind(projectPath, __dirname);
+      setupTailwind(projectPath, __dirname, false);
     }
 
     // Set up lamdera-program-test if requested
@@ -440,7 +499,7 @@ async function createNewProject() {
       // If both Tailwind and test are enabled, set up Tailwind after test
       if (useTailwind) {
         console.log(chalk.yellow('Note: When using lamdera-program-test with Tailwind, you\'ll need to manually integrate Tailwind examples.'));
-        setupTailwind(projectPath, __dirname);
+        setupTailwind(projectPath, __dirname, true);
       }
     }
 
