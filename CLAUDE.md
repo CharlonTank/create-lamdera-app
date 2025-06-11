@@ -45,6 +45,7 @@ When working on this codebase:
 2. **CLI Logic**: The main scaffolding logic is in `index.js` - it checks for Lamdera installation, prompts for configuration, and copies templates
 3. **Utility Scripts**: Shell and Python scripts in `/templates/` are copied as-is to new projects
 4. **Tailwind CSS**: The `setupTailwind` function handles npm initialization, Tailwind config, and script setup
+5. **lamdera-program-test**: The `setupLamderaTest` function replaces standard modules with Effect.* modules for testable code
 
 ## Lamdera-Specific Guidelines
 

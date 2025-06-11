@@ -18,7 +18,8 @@ const parseArgs = () => {
     cursor: null,
     github: null,
     visibility: 'private',
-    tailwind: null
+    tailwind: null,
+    test: null
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -55,11 +56,26 @@ const parseArgs = () => {
         parsed.visibility = 'private';
         break;
       case '--tailwind':
-        parsed.tailwind = nextArg === 'yes' || nextArg === 'y';
-        i++;
+        if (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n') {
+          parsed.tailwind = nextArg === 'yes' || nextArg === 'y';
+          i++;
+        } else {
+          parsed.tailwind = true;
+        }
         break;
       case '--no-tailwind':
         parsed.tailwind = false;
+        break;
+      case '--test':
+        if (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n') {
+          parsed.test = nextArg === 'yes' || nextArg === 'y';
+          i++;
+        } else {
+          parsed.test = true;
+        }
+        break;
+      case '--no-test':
+        parsed.test = false;
         break;
     }
   }
@@ -93,6 +109,8 @@ ${chalk.bold('Options:')}
   --private           Make GitHub repository private (default)
   --tailwind <yes|no> Add Tailwind CSS setup (yes/no)
   --no-tailwind       Don't add Tailwind CSS
+  --test <yes|no>     Add lamdera-program-test setup (yes/no)
+  --no-test           Don't add lamdera-program-test
   --version           Show version number
   --help, -h          Show this help message
 
@@ -109,6 +127,9 @@ ${chalk.bold('Examples:')}
   ${chalk.gray('# Create a project with Tailwind CSS')}
   npx @CharlonTank/create-lamdera-app --name my-app --tailwind yes --no-cursor
 
+  ${chalk.gray('# Create a testable project with lamdera-program-test')}
+  npx @CharlonTank/create-lamdera-app --name my-app --test yes
+
   ${chalk.gray('# Add utilities to existing project')}
   npx @CharlonTank/create-lamdera-app --init --cursor yes
 `);
@@ -117,9 +138,10 @@ ${chalk.bold('Examples:')}
 
 // Only create readline interface if we need it (no args provided)
 let rl = null;
-const isInteractive = !parsedArgs.name && !parsedArgs.init;
+const isNewProjectInteractive = !parsedArgs.init && !parsedArgs.name;
+const isInitInteractive = parsedArgs.init && parsedArgs.cursor === null;
 
-if (isInteractive || (parsedArgs.init && parsedArgs.cursor === null)) {
+if (isNewProjectInteractive || isInitInteractive) {
   rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -255,6 +277,33 @@ function setupTailwind(projectPath, baseDir) {
   }
 }
 
+// Setup lamdera-program-test
+function setupLamderaTest(projectPath, baseDir) {
+  console.log(chalk.blue('Setting up lamdera-program-test...'));
+  
+  const templatePath = path.join(baseDir, 'templates');
+  
+  // Replace elm.json with test version
+  fs.copyFileSync(path.join(templatePath, 'test-elm.json'), path.join(projectPath, 'elm.json'));
+  
+  // Replace Backend.elm, Frontend.elm, and Types.elm with test versions
+  fs.copyFileSync(path.join(templatePath, 'test-backend.elm'), path.join(projectPath, 'src', 'Backend.elm'));
+  fs.copyFileSync(path.join(templatePath, 'test-frontend.elm'), path.join(projectPath, 'src', 'Frontend.elm'));
+  fs.copyFileSync(path.join(templatePath, 'test-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
+  
+  // Create tests directory
+  fs.mkdirSync(path.join(projectPath, 'tests'), { recursive: true });
+  
+  // Copy test template
+  fs.copyFileSync(path.join(templatePath, 'test-tests.elm'), path.join(projectPath, 'tests', 'Tests.elm'));
+  
+  // Copy elm-test-rs.json
+  fs.copyFileSync(path.join(templatePath, 'elm-test-rs.json'), path.join(projectPath, 'elm-test-rs.json'));
+  
+  console.log(chalk.green('lamdera-program-test setup complete!'));
+  console.log(chalk.gray('To run tests: elm-test-rs --compiler $(which lamdera)'));
+}
+
 // Initialize Lamdera project
 function initializeLamderaProject(projectPath) {
   const templatePath = path.join(__dirname, 'templates', 'lamdera-init');
@@ -289,10 +338,14 @@ async function initializeExistingProject() {
     let useCursor = parsedArgs.cursor;
     
     // Only ask if not provided via CLI
-    if (useCursor === null && rl) {
-      console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
-      const answer = await new Promise(resolve => rl.question('', resolve));
-      useCursor = answer.toLowerCase() === 'y';
+    if (useCursor === null) {
+      if (rl) {
+        console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+        const answer = await new Promise(resolve => rl.question('', resolve));
+        useCursor = answer.toLowerCase() === 'y';
+      } else {
+        useCursor = false; // Default to false in non-interactive mode
+      }
     }
 
     // Create utility files
@@ -314,6 +367,7 @@ async function createNewProject() {
     let createRepo = parsedArgs.github;
     let repoVisibility = parsedArgs.visibility;
     let useTailwind = parsedArgs.tailwind;
+    let useTest = parsedArgs.test;
 
     // Get project name if not provided
     if (!projectName) {
@@ -331,10 +385,14 @@ async function createNewProject() {
     }
 
     // Get cursor preference if not provided
-    if (useCursor === null && rl) {
-      console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
-      const answer = await new Promise(resolve => rl.question('', resolve));
-      useCursor = answer.toLowerCase() === 'y';
+    if (useCursor === null) {
+      if (rl) {
+        console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
+        const answer = await new Promise(resolve => rl.question('', resolve));
+        useCursor = answer.toLowerCase() === 'y';
+      } else {
+        useCursor = false; // Default to false in non-interactive mode
+      }
     }
 
     // Get Tailwind preference if not provided
@@ -342,6 +400,13 @@ async function createNewProject() {
       console.log(chalk.cyan('Do you want to use Tailwind CSS? (y/n)'));
       const answer = await new Promise(resolve => rl.question('', resolve));
       useTailwind = answer.toLowerCase() === 'y';
+    }
+
+    // Get test preference if not provided
+    if (useTest === null && rl) {
+      console.log(chalk.cyan('Do you want to set up lamdera-program-test for testing? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      useTest = answer.toLowerCase() === 'y';
     }
 
     const projectPath = path.join(process.cwd(), projectName);
@@ -365,8 +430,18 @@ async function createNewProject() {
     createUtilityFiles(projectPath, useCursor);
 
     // Set up Tailwind if requested
-    if (useTailwind) {
+    if (useTailwind && !useTest) {
       setupTailwind(projectPath, __dirname);
+    }
+
+    // Set up lamdera-program-test if requested
+    if (useTest) {
+      setupLamderaTest(projectPath, __dirname);
+      // If both Tailwind and test are enabled, set up Tailwind after test
+      if (useTailwind) {
+        console.log(chalk.yellow('Note: When using lamdera-program-test with Tailwind, you\'ll need to manually integrate Tailwind examples.'));
+        setupTailwind(projectPath, __dirname);
+      }
     }
 
     // Handle GitHub repository
@@ -412,6 +487,13 @@ async function createNewProject() {
       console.log(chalk.cyan('npm run start:hot'));
     } else {
       console.log(chalk.cyan('./lamdera-dev-watch.sh'));
+    }
+    
+    if (useTest) {
+      console.log('');
+      console.log(chalk.blue('Test examples included:'));
+      console.log(chalk.gray('Check tests/Tests.elm for lamdera-program-test examples'));
+      console.log(chalk.gray('To run: elm-test-rs --compiler $(which lamdera)'));
     }
   } finally {
     if (rl) {

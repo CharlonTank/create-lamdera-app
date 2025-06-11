@@ -7,7 +7,15 @@
       "Bash(ls:*)",
       "Bash(git add:*)",
       "Bash(cat:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(lamdera:*)",
+      "Bash(rm:*)",
+      "Bash(elm-test-rs:*)",
+      "Bash(pkill:*)",
+      "Bash(./lamdera-dev-watch.sh:*)",
+      "Bash(mv:*)",
+      "Bash(true)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

@@ -29,6 +29,9 @@ npx @CharlonTank/create-lamdera-app --init
 
 # 🔄 Development server with hot-reload for elm-pkg-js
 ./lamdera-dev-watch.sh
+
+# 🧪 Create with testing support
+npx @CharlonTank/create-lamdera-app --test yes
 ```
 
 ## 🎯 Development Tools
@@ -36,6 +39,7 @@ npx @CharlonTank/create-lamdera-app --init
 - `.cursorrules` - AI coding guidelines for Lamdera best practices
 - `lamdera-dev-watch.sh` - Smart development server with auto-reload
 - **Tailwind CSS** - Optional utility-first CSS framework integration
+- **lamdera-program-test** - End-to-end testing framework for Lamdera apps
 
 ## 📦 Prerequisites
 
