@@ -17,7 +17,18 @@
       "Bash(true)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(npm publish:*)"
+      "Bash(npm publish:*)",
+      "Bash(rg:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(find:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(chmod:*)",
+      "Bash(npm start)",
+      "Bash(./test-all-combinations.sh:*)",
+      "Bash(tree:*)",
+      "Bash(echo:*)",
+      "Bash(npm init:*)",
+      "Bash(time npm install:*)"
     ],
     "deny": []
   }

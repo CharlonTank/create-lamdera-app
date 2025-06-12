@@ -1,41 +1,71 @@
 {
-  "name": "create-lamdera-app",
-  "version": "1.2.1",
-  "description": "A utility script to initialize a new Lamdera application with common utilities and configurations",
-  "main": "index.js",
-  "bin": {
-    "create-lamdera-app": "index.js"
-  },
-  "files": [
-    "index.js",
-    "templates/*"
-  ],
-  "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
-  },
+  "name": "@CharlonTank/create-lamdera-app",
+  "version": "1.2.2",
+  "description": "A modern CLI tool to scaffold Lamdera applications with Tailwind CSS, i18n, dark mode, and testing support",
   "keywords": [
     "lamdera",
     "elm",
     "create-app",
-    "generator"
+    "scaffold",
+    "generator",
+    "cli",
+    "tailwind",
+    "i18n",
+    "testing",
+    "fullstack"
   ],
-  "author": "Charles-André Assus",
-  "license": "MIT",
-  "dependencies": {
-    "chalk": "^4.1.2"
+  "homepage": "https://github.com/CharlonTank/create-lamdera-app#readme",
+  "bugs": {
+    "url": "https://github.com/CharlonTank/create-lamdera-app/issues"
   },
-  "preferGlobal": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CharlonTank/create-lamdera-app.git"
   },
-  "publishConfig": {
-    "access": "public"
+  "license": "MIT",
+  "author": {
+    "name": "Charles-André Assus",
+    "url": "https://github.com/CharlonTank"
+  },
+  "main": "index.js",
+  "bin": {
+    "create-lamdera-app": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "templates/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint index.js test/**/*.js",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "prepare": "husky install",
+    "prepublishOnly": "npm test",
+    "version": "npm run format && git add -A",
+    "postversion": "git push && git push --tags"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "jest": "^30.0.0"
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^8.0.3",
+    "jest": "^30.0.0",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

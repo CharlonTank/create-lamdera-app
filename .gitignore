@@ -16,4 +16,8 @@ Thumbs.db
 
 # Testing
 coverage/
-*.log 
+*.log
+
+# Manual test applications
+manual-tests/
+logs/ 

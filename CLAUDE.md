@@ -58,9 +58,37 @@ From the included `.cursorrules` file:
 - Fix compilation errors one at a time
 - Store images directly under the `public/` directory
 
+## Recent Development Work
+
+### Test Suite Enhancements
+Enhanced the test suite from 41 to 49 tests with comprehensive cross-flag compatibility testing:
+- **Feature tests WITHOUT test mode**: Tests standard Elm with direct ports
+- **Feature tests WITH test mode**: Tests lamdera-program-test with Effect-wrapped ports
+- **Cross-flag combinations**: i18n, Tailwind, combined features with/without test mode
+- **Compilation verification**: Each test verifies Elm compilation succeeds
+
+Key finding: With lamdera-program-test, LocalStorage still uses ports but wraps them with Effect.Command and Effect.Subscription.
+
+### LocalStorage Persistence Fix
+Fixed localStorage persistence issue where settings weren't saved on page refresh:
+- **Problem**: Used timeout-based push pattern that didn't work on page reload
+- **Solution**: Implemented request-response pattern where Elm requests localStorage during init
+- **Changes**: Added `requestLocalStorage` port and command, updated init functions
+- **Pattern**: Similar to rails-elm-graphql-boilerplate implementation
+
+### Template Architecture
+The template system supports two distinct patterns:
+- **Standard mode**: Direct Elm ports (`port storeLocalStorageValue_`)
+- **Test mode**: Effect-wrapped ports (`Command.sendToJs` with Effect modules)
+
+### Known Issues
+- **chat-test-i18n compilation**: TYPE MISMATCH error where `requestLocalStorage_` port expects `E.Value -> Cmd msg` but receives `() -> Cmd msg`
+- This affects the combined i18n + test mode only
+
 ## Publishing
 
 This package is published to npm as `@CharlonTank/create-lamdera-app`. When preparing a release:
 1. Update version in `package.json`
 2. Ensure all template files are working correctly
 3. Test both new project creation and `--init` mode
+4. Run full test suite including cross-flag compatibility tests

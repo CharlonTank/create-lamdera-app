@@ -19,7 +19,9 @@ const parseArgs = () => {
     github: null,
     visibility: 'private',
     tailwind: null,
-    test: null
+    test: null,
+    i18n: null,
+    skipInstall: false
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -91,6 +93,20 @@ const parseArgs = () => {
       case '--no-test':
         parsed.test = false;
         break;
+      case '--i18n':
+        if (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n') {
+          parsed.i18n = nextArg === 'yes' || nextArg === 'y';
+          i++;
+        } else {
+          parsed.i18n = true;
+        }
+        break;
+      case '--no-i18n':
+        parsed.i18n = false;
+        break;
+      case '--skip-install':
+        parsed.skipInstall = true;
+        break;
     }
   }
   
@@ -125,6 +141,9 @@ ${chalk.bold('Options:')}
   --no-tailwind       Don't add Tailwind CSS
   --test <yes|no>     Add lamdera-program-test setup (yes/no)
   --no-test           Don't add lamdera-program-test
+  --i18n <yes|no>     Add internationalization and dark mode (yes/no)
+  --no-i18n           Don't add i18n and dark mode
+  --skip-install      Skip npm install for Tailwind projects
   --version           Show version number
   --help, -h          Show this help message
 
@@ -143,6 +162,9 @@ ${chalk.bold('Examples:')}
 
   ${chalk.gray('# Create a testable project with lamdera-program-test')}
   npx @CharlonTank/create-lamdera-app --name my-app --test yes
+
+  ${chalk.gray('# Create a project with i18n and dark mode support')}
+  npx @CharlonTank/create-lamdera-app --name my-app --i18n yes
 
   ${chalk.gray('# Add utilities to existing project')}
   npx @CharlonTank/create-lamdera-app --init --cursor yes
@@ -169,13 +191,43 @@ process.on('SIGINT', () => {
 });
 
 // Helper function to execute commands
-function execCommand(command) {
+function execCommand(command, showProgress = false) {
   try {
-    execSync(command, { stdio: 'inherit', killSignal: 'SIGINT' });
+    // Special handling for npm commands to show progress
+    if (showProgress && command.startsWith('npm')) {
+      console.log(chalk.blue(`⏳ Running: ${command}`));
+      console.log(chalk.gray('This may take a few minutes depending on your internet connection...'));
+      
+      // Add progress flag to npm commands
+      if (command.includes('npm install')) {
+        command = command.replace('npm install', 'npm install --progress');
+      }
+    }
+    
+    // Add timeout for npm commands
+    const options = { 
+      stdio: 'inherit', 
+      killSignal: 'SIGINT'
+    };
+    
+    // For npm install, add a longer timeout (5 minutes)
+    if (command.includes('npm install')) {
+      options.timeout = 300000; // 5 minutes
+    }
+    
+    execSync(command, options);
+    
+    if (showProgress && command.startsWith('npm')) {
+      console.log(chalk.green('✓ Command completed successfully'));
+    }
   } catch (error) {
     if (error.signal === 'SIGINT') {
       console.log(chalk.yellow('\nProcess interrupted by user'));
       process.exit(0);
+    }
+    if (error.code === 'ETIMEDOUT') {
+      console.error(chalk.red('\nCommand timed out after 5 minutes'));
+      console.error(chalk.yellow('Try running npm install manually in the project directory'));
     }
     console.error(chalk.red(`Error executing command: ${command}`));
     console.error(chalk.red(error.message));
@@ -198,21 +250,21 @@ function createUtilityFiles(projectPath, useCursor) {
   const templatePath = path.join(__dirname, 'templates');
 
   // Copy template files
-  fs.copyFileSync(path.join(templatePath, 'lamdera-dev-watch.sh'), path.join(projectPath, 'lamdera-dev-watch.sh'));
+  fs.copyFileSync(path.join(templatePath, 'utilities', 'lamdera-dev-watch.sh'), path.join(projectPath, 'lamdera-dev-watch.sh'));
   fs.chmodSync(path.join(projectPath, 'lamdera-dev-watch.sh'), '755');
 
-  fs.copyFileSync(path.join(templatePath, 'toggle-debugger.py'), path.join(projectPath, 'toggle-debugger.py'));
+  fs.copyFileSync(path.join(templatePath, 'utilities', 'toggle-debugger.py'), path.join(projectPath, 'toggle-debugger.py'));
   fs.chmodSync(path.join(projectPath, 'toggle-debugger.py'), '755');
 
   if (useCursor) {
-    fs.copyFileSync(path.join(templatePath, '.cursorrules'), path.join(projectPath, '.cursorrules'));
-    fs.copyFileSync(path.join(templatePath, 'openEditor.sh'), path.join(projectPath, 'openEditor.sh'));
+    fs.copyFileSync(path.join(templatePath, 'utilities', '.cursorrules'), path.join(projectPath, '.cursorrules'));
+    fs.copyFileSync(path.join(templatePath, 'utilities', 'openEditor.sh'), path.join(projectPath, 'openEditor.sh'));
     fs.chmodSync(path.join(projectPath, 'openEditor.sh'), '755');
   }
 }
 
 // Initialize Tailwind CSS
-function setupTailwind(projectPath, baseDir, skipFrontend = false) {
+function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall = false) {
   console.log(chalk.blue('Setting up Tailwind CSS...'));
   
   // Save current directory and change to project path
@@ -221,19 +273,39 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false) {
   
   try {
     // Initialize npm
-    execCommand('npm init -y');
+    execCommand('npm init -y', true);
     
     // Wait a moment and verify package.json was created
     if (!fs.existsSync('./package.json')) {
       throw new Error('Failed to create package.json');
     }
     
-    // Install dependencies
-    execCommand('npm install tailwindcss@^3');
-    execCommand('npm install --save-dev run-pty');
+    // Install dependencies unless skipped
+    if (!skipInstall) {
+      console.log(chalk.yellow('\n📦 Installing Tailwind CSS dependencies...'));
+      execCommand('npm install tailwindcss@^3', true);
+      execCommand('npm install --save-dev run-pty', true);
+    } else {
+      console.log(chalk.yellow('\n⚠️  Skipping npm install as requested'));
+      console.log(chalk.gray('Run "npm install" manually later to install dependencies'));
+      
+      // Still need to update package.json with dependencies
+      const packageJsonPath = './package.json';
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      packageJson.dependencies = {
+        ...packageJson.dependencies,
+        "tailwindcss": "^3"
+      };
+      packageJson.devDependencies = {
+        ...packageJson.devDependencies,
+        "run-pty": "^5.0.0"
+      };
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    }
     
     // Create tailwind.config.js content manually (since v4 doesn't have init)
     const tailwindConfig = `module.exports = {
+  darkMode: 'class',
   content: [
     "./src/**/*.{elm,js,html}",
     "./*.html"
@@ -273,19 +345,19 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false) {
   
   packageJson.scripts = {
     ...packageJson.scripts,
-    "start": "run-pty % lamdera live % tailwindcss -i ./src/styles.css -o ./public/styles.css --watch",
-    "start:hot": "run-pty % ./lamdera-dev-watch.sh % tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"
+    "start": "run-pty % \"lamdera live --port=${PORT:-8000}\" % \"tailwindcss -i ./src/styles.css -o ./public/styles.css --watch\"",
+    "start:hot": "run-pty % \"PORT=${PORT:-8000} ./lamdera-dev-watch.sh\" % \"tailwindcss -i ./src/styles.css -o ./public/styles.css --watch\""
   };
   
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   
     // Update .gitignore for Tailwind
     const templatePath = path.join(baseDir, 'templates');
-    fs.copyFileSync(path.join(templatePath, 'tailwind.gitignore'), './.gitignore');
+    fs.copyFileSync(path.join(templatePath, 'features', 'tailwind', 'tailwind.gitignore'), './.gitignore');
     
     // Replace Frontend.elm with Tailwind example version (only if not using test mode)
     if (!skipFrontend) {
-      fs.copyFileSync(path.join(templatePath, 'tailwind-frontend.elm'), './src/Frontend.elm');
+      fs.copyFileSync(path.join(templatePath, 'features', 'tailwind', 'tailwind-frontend.elm'), './src/Frontend.elm');
     }
     
     console.log(chalk.green('Tailwind CSS setup complete!'));
@@ -302,29 +374,97 @@ function setupLamderaTest(projectPath, baseDir) {
   const templatePath = path.join(baseDir, 'templates');
   
   // Replace elm.json with test version
-  fs.copyFileSync(path.join(templatePath, 'test-elm.json'), path.join(projectPath, 'elm.json'));
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-elm.json'), path.join(projectPath, 'elm.json'));
   
   // Replace Backend.elm, Frontend.elm, and Types.elm with test versions
-  fs.copyFileSync(path.join(templatePath, 'test-backend.elm'), path.join(projectPath, 'src', 'Backend.elm'));
-  fs.copyFileSync(path.join(templatePath, 'test-frontend.elm'), path.join(projectPath, 'src', 'Frontend.elm'));
-  fs.copyFileSync(path.join(templatePath, 'test-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-backend.elm'), path.join(projectPath, 'src', 'Backend.elm'));
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-frontend.elm'), path.join(projectPath, 'src', 'Frontend.elm'));
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
   
   // Create tests directory
   fs.mkdirSync(path.join(projectPath, 'tests'), { recursive: true });
   
   // Copy test template
-  fs.copyFileSync(path.join(templatePath, 'test-tests.elm'), path.join(projectPath, 'tests', 'Tests.elm'));
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-tests.elm'), path.join(projectPath, 'tests', 'Tests.elm'));
   
   // Copy elm-test-rs.json
-  fs.copyFileSync(path.join(templatePath, 'elm-test-rs.json'), path.join(projectPath, 'elm-test-rs.json'));
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'elm-test-rs.json'), path.join(projectPath, 'elm-test-rs.json'));
   
   console.log(chalk.green('lamdera-program-test setup complete!'));
   console.log(chalk.gray('To run tests: elm-test-rs --compiler $(which lamdera)'));
 }
 
+// Setup i18n and dark mode
+function setupI18n(projectPath, baseDir, useTest = false, useTailwind = false) {
+  console.log(chalk.blue('Setting up i18n and dark mode support...'));
+  
+  const templatePath = path.join(baseDir, 'templates');
+  
+  // Copy i18n and theme modules
+  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'I18n.elm'), path.join(projectPath, 'src', 'I18n.elm'));
+  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'Theme.elm'), path.join(projectPath, 'src', 'Theme.elm'));
+  
+  // Copy appropriate LocalStorage module
+  if (useTest) {
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'test-LocalStorage.elm'), path.join(projectPath, 'src', 'LocalStorage.elm'));
+  } else {
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'LocalStorage.elm'), path.join(projectPath, 'src', 'LocalStorage.elm'));
+  }
+  
+  // Replace Frontend with appropriate version based on flags
+  let frontendTemplate;
+  if (useTailwind && useTest) {
+    frontendTemplate = 'test-tailwind-i18n-theme-frontend.elm';
+  } else if (useTailwind) {
+    frontendTemplate = 'tailwind-i18n-theme-frontend.elm';
+  } else if (useTest) {
+    frontendTemplate = 'test-i18n-theme-frontend.elm';
+  } else {
+    frontendTemplate = 'i18n-theme-frontend.elm';
+  }
+  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', frontendTemplate), path.join(projectPath, 'src', 'Frontend.elm'));
+  
+  // Replace Types with appropriate version
+  if (useTest) {
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'test-i18n-theme-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
+  } else {
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'i18n-theme-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
+  }
+  
+  // Replace head.html with appropriate i18n version
+  if (useTest) {
+    // Test mode uses inline localStorage handler (for elm-pkg-js)
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'i18n-theme-head.html'), path.join(projectPath, 'head.html'));
+  } else {
+    // Standard mode uses external localStorage.js file
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'i18n-theme-head-standard.html'), path.join(projectPath, 'head.html'));
+  }
+  
+  // If using test mode, set up elm-pkg-js
+  if (useTest) {
+    // Create elm-pkg-js directory
+    fs.mkdirSync(path.join(projectPath, 'elm-pkg-js'), { recursive: true });
+    
+    // Copy localStorage.js
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'elm-pkg-js', 'localStorage.js'), path.join(projectPath, 'elm-pkg-js', 'localStorage.js'));
+    
+    // Copy elm-pkg-js-includes.js
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'elm-pkg-js-includes.js'), path.join(projectPath, 'elm-pkg-js-includes.js'));
+  } else {
+    // For non-test mode, copy the standalone localStorage.js
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'localStorage.js'), path.join(projectPath, 'localStorage.js'));
+  }
+  
+  console.log(chalk.green('i18n and dark mode setup complete!'));
+  console.log(chalk.gray('Features added:'));
+  console.log(chalk.gray('- Language switcher (EN/FR)'));
+  console.log(chalk.gray('- Dark/Light/System theme modes'));
+  console.log(chalk.gray('- Persistent user preferences'));
+}
+
 // Initialize Lamdera project
 function initializeLamderaProject(projectPath) {
-  const templatePath = path.join(__dirname, 'templates', 'lamdera-init');
+  const templatePath = path.join(__dirname, 'templates', 'base');
 
   // Copy all files from template
   const copyRecursive = (src, dest) => {
@@ -392,7 +532,23 @@ async function initializeExistingProject() {
     
     // Set up Tailwind if requested
     if (useTailwind) {
-      setupTailwind(process.cwd(), __dirname, true); // Skip frontend since it already exists
+      setupTailwind(process.cwd(), __dirname, true, parsedArgs.skipInstall); // Skip frontend since it already exists
+    }
+    
+    // Check if user wants i18n
+    let useI18n = parsedArgs.i18n;
+    if (useI18n === null && rl) {
+      console.log(chalk.cyan('Do you want to add internationalization and dark mode support? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      useI18n = answer.toLowerCase() === 'y';
+    }
+    
+    // Set up i18n if requested
+    if (useI18n) {
+      // Check if this is a test project
+      const elmJson = JSON.parse(fs.readFileSync('./elm.json', 'utf8'));
+      const isTestProject = elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
+      setupI18n(process.cwd(), __dirname, isTestProject);
     }
 
     console.log(chalk.green('Project setup complete!'));
@@ -411,6 +567,7 @@ async function createNewProject() {
     let repoVisibility = parsedArgs.visibility;
     let useTailwind = parsedArgs.tailwind;
     let useTest = parsedArgs.test;
+    let useI18n = parsedArgs.i18n;
 
     // Get project name if not provided
     if (!projectName) {
@@ -468,6 +625,13 @@ async function createNewProject() {
       useTest = answer.toLowerCase() === 'y';
     }
 
+    // Get i18n preference if not provided
+    if (useI18n === null && rl) {
+      console.log(chalk.cyan('Do you want to add internationalization and dark mode support? (y/n)'));
+      const answer = await new Promise(resolve => rl.question('', resolve));
+      useI18n = answer.toLowerCase() === 'y';
+    }
+
     const projectPath = path.join(process.cwd(), projectName);
 
     // Check if directory already exists
@@ -489,8 +653,11 @@ async function createNewProject() {
     createUtilityFiles(projectPath, useCursor);
 
     // Set up Tailwind if requested
-    if (useTailwind && !useTest) {
-      setupTailwind(projectPath, __dirname, false);
+    if (useTailwind && !useTest && !useI18n) {
+      setupTailwind(projectPath, __dirname, false, parsedArgs.skipInstall);
+    } else if (useTailwind && !useTest && useI18n) {
+      // When both Tailwind and i18n are enabled, setup Tailwind infrastructure but let i18n handle Frontend
+      setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall);
     }
 
     // Set up lamdera-program-test if requested
@@ -499,8 +666,13 @@ async function createNewProject() {
       // If both Tailwind and test are enabled, set up Tailwind after test
       if (useTailwind) {
         console.log(chalk.yellow('Note: When using lamdera-program-test with Tailwind, you\'ll need to manually integrate Tailwind examples.'));
-        setupTailwind(projectPath, __dirname, true);
+        setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall);
       }
+    }
+
+    // Set up i18n if requested
+    if (useI18n) {
+      setupI18n(projectPath, __dirname, useTest, useTailwind);
     }
 
     // Handle GitHub repository
@@ -539,13 +711,28 @@ async function createNewProject() {
     console.log(chalk.blue('To start development server:'));
     console.log(chalk.cyan(`cd ${projectName}`));
     if (useTailwind) {
+      if (parsedArgs.skipInstall) {
+        console.log(chalk.yellow('\n⚠️  npm install was skipped'));
+        console.log(chalk.cyan('npm install'));
+        console.log(chalk.gray('(Run this first to install dependencies)'));
+        console.log('');
+      }
       console.log(chalk.cyan('npm start'));
       console.log(chalk.gray('(This runs both Lamdera and Tailwind CSS watcher)'));
       console.log('');
+      console.log(chalk.blue('To use a different port:'));
+      console.log(chalk.cyan('PORT=3000 npm start'));
+      console.log('');
       console.log(chalk.blue('For hot-reload with elm-pkg-js:'));
       console.log(chalk.cyan('npm run start:hot'));
+      console.log(chalk.gray('(Also supports PORT=3000 npm run start:hot)'));
     } else {
       console.log(chalk.cyan('./lamdera-dev-watch.sh'));
+      console.log('');
+      console.log(chalk.blue('To use a different port:'));
+      console.log(chalk.cyan('./lamdera-dev-watch.sh --port=3000'));
+      console.log(chalk.gray('or'));
+      console.log(chalk.cyan('PORT=3000 ./lamdera-dev-watch.sh'));
     }
     
     if (useTest) {
@@ -553,6 +740,15 @@ async function createNewProject() {
       console.log(chalk.blue('Test examples included:'));
       console.log(chalk.gray('Check tests/Tests.elm for lamdera-program-test examples'));
       console.log(chalk.gray('To run: elm-test-rs --compiler $(which lamdera)'));
+    }
+    
+    if (useI18n) {
+      console.log('');
+      console.log(chalk.blue('i18n and dark mode features:'));
+      console.log(chalk.gray('- Language switcher (EN/FR) in the header'));
+      console.log(chalk.gray('- Dark/Light/System theme selector'));
+      console.log(chalk.gray('- Preferences persist in localStorage'));
+      console.log(chalk.gray('- Auto-detects browser language and system theme'));
     }
   } finally {
     if (rl) {

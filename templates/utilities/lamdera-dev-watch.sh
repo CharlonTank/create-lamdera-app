@@ -8,7 +8,8 @@ CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-PORT=8000
+# Use environment variable PORT if set, otherwise default to 8000
+PORT=${PORT:-8000}
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
