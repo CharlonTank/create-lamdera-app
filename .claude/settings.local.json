@@ -38,7 +38,10 @@
       "Bash(bun install:*)",
       "Bash(bunx run-pty:*)",
       "Bash(./test-commands.sh)",
-      "Bash(bun add:*)"
+      "Bash(bun add:*)",
+      "Bash(npm install)",
+      "Bash(npm config get:*)",
+      "Bash(npm config delete:*)"
     ],
     "deny": []
   }
