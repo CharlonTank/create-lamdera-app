@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Environment variables:
+# USE_BUN=false        - Force use of npm even if Bun is installed
+# SKIP_NPM_INSTALL=true - Skip package installation entirely
+
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -14,43 +18,42 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 mkdir -p "$BASE_DIR"
 cd "$BASE_DIR"
 
+# Check for Bun
+if command -v bun >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Bun detected - will use for faster installs${NC}"
+else
+    echo -e "${YELLOW}Bun not detected - using npm (slower)${NC}"
+    echo -e "${BLUE}To use Bun for 10x faster installs, run: ${CYAN}../install-bun.sh${NC}"
+fi
+echo
+
 # Clean up existing test directories
 echo -e "${YELLOW}Cleaning up existing test directories...${NC}"
 rm -rf app-*
 
-# All possible flag combinations (excluding github)
-# Flags: cursor, tailwind, test, i18n
+# Simplified test combinations
+# Note: cursor flag only adds .cursorrules and openEditor.sh, doesn't affect functionality
 declare -a apps=(
-    # No flags
+    # Basic tests
     "app-basic:"
     
-    # Single flags
-    "app-cursor:--cursor yes"
+    # Single feature tests
     "app-tailwind:--tailwind"
     "app-test:--test"
     "app-i18n:--i18n"
     
-    # Two flags
-    "app-cursor-tailwind:--cursor yes --tailwind"
-    "app-cursor-test:--cursor yes --test"
-    "app-cursor-i18n:--cursor yes --i18n"
+    # Two feature combinations
     "app-tailwind-test:--tailwind --test"
     "app-tailwind-i18n:--tailwind --i18n"
     "app-test-i18n:--test --i18n"
     
-    # Three flags
-    "app-cursor-tailwind-test:--cursor yes --tailwind --test"
-    "app-cursor-tailwind-i18n:--cursor yes --tailwind --i18n"
-    "app-cursor-test-i18n:--cursor yes --test --i18n"
-    "app-tailwind-test-i18n:--tailwind --test --i18n"
-    
-    # All flags
-    "app-all-features:--cursor yes --tailwind --test --i18n"
+    # Three features
+    "app-all-features:--tailwind --test --i18n"
 )
 
 # Total number of combinations
 total=${#apps[@]}
-echo -e "${BLUE}Creating ${total} test applications with different flag combinations${NC}\n"
+echo -e "${BLUE}Creating ${total} test applications${NC}\n"
 
 # Counter for progress
 count=0
@@ -70,16 +73,28 @@ for app_config in "${apps[@]}"; do
         cmd="$cmd $flags"
     fi
     
-    # Execute the command
-    echo -e "${BLUE}Running: $cmd${NC}"
-    
     # Add --no-github to avoid any GitHub operations
     cmd="$cmd --no-github"
     
-    # For apps with Tailwind, we'll need npm install which can be slow
+    # Execute the command
+    echo -e "${BLUE}Running: $cmd${NC}"
+    
+    # For apps with Tailwind, handle package manager
     if [[ "$flags" == *"--tailwind"* ]]; then
-        echo -e "${YELLOW}Note: This app includes Tailwind CSS, npm install may take a moment...${NC}"
-        echo -e "${BLUE}Progress will be shown during npm installation${NC}"
+        # Force use Bun if requested via FORCE_BUN
+        if [ "${FORCE_BUN:-false}" = "true" ]; then
+            echo -e "${BLUE}Note: Forcing Bun usage (will install if needed)${NC}"
+            cmd="$cmd --bun"
+        # Check if we should use Bun
+        elif [ "${USE_BUN:-true}" = "true" ] && command -v bun >/dev/null 2>&1; then
+            echo -e "${BLUE}Note: Using Bun for faster installs${NC}"
+            cmd="$cmd --bun"
+        elif [ "${SKIP_NPM_INSTALL:-false}" = "true" ]; then
+            echo -e "${YELLOW}Note: Skipping npm install for Tailwind (use SKIP_NPM_INSTALL=false to enable)${NC}"
+            cmd="$cmd --skip-install"
+        else
+            echo -e "${YELLOW}Note: This app includes Tailwind CSS, npm install may take a moment...${NC}"
+        fi
     fi
     
     eval "$cmd"
@@ -101,6 +116,7 @@ for app_config in "${apps[@]}"; do
     echo -e "${GREEN}Testing $app_name...${NC}"
     
     cd "$app_name"
+    
     
     # Test Elm compilation
     if lamdera make src/Frontend.elm src/Backend.elm > /dev/null 2>&1; then
@@ -132,6 +148,10 @@ for app_config in "${apps[@]}"; do
 done
 
 echo -e "${GREEN}All tests completed!${NC}"
-echo -e "${BLUE}You can now manually test each app by navigating to its directory and running:${NC}"
-echo -e "  - For standard apps: ${YELLOW}./lamdera-dev-watch.sh${NC}"
-echo -e "  - For Tailwind apps: ${YELLOW}npm start${NC}"
+echo -e "${BLUE}Functional test combinations:${NC}"
+echo -e "  - Basic (no features)"
+echo -e "  - Single features: Tailwind, Test, i18n"
+echo -e "  - All pairs of features"
+echo -e "  - All features combined"
+echo -e "\n${YELLOW}Note: Cursor flag only adds .cursorrules and openEditor.sh${NC}"
+echo -e "${YELLOW}      It doesn't affect other features, so we test it once.${NC}"

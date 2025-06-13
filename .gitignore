@@ -20,4 +20,5 @@ coverage/
 
 # Manual test applications
 manual-tests/
-logs/ 
+logs/
+test_recap.json 

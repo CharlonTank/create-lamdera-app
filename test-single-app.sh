@@ -37,7 +37,7 @@ fi
 # Function to clean up server processes
 cleanup_server() {
     pkill -f "lamdera live" 2>/dev/null
-    pkill -f "node.*run-pty" 2>/dev/null
+    pkill -f "concurrently" 2>/dev/null
     pkill -f "tailwindcss" 2>/dev/null
     sleep 1
 }
@@ -65,10 +65,20 @@ features=""
 echo -e "${BLUE}Features: ${CYAN}$features${NC}"
 echo -e "${BLUE}Port: ${CYAN}$PORT${NC}\n"
 
+# Determine package manager
+PM="npm"
+if [ -f "bun.lockb" ] || ([ -f "package.json" ] && grep -q "bunx" package.json); then
+    PM="bun"
+fi
+
 # Start the app
 if [ -f "tailwind.config.js" ]; then
-    echo -e "${YELLOW}Starting with npm start (Tailwind detected)...${NC}"
-    PORT=$PORT npm start
+    echo -e "${YELLOW}Starting with $PM start (Tailwind detected)...${NC}"
+    if [ "$PM" = "bun" ]; then
+        PORT=$PORT bun run start
+    else
+        PORT=$PORT npm start
+    fi
 else
     echo -e "${YELLOW}Starting with lamdera-dev-watch.sh...${NC}"
     PORT=$PORT ./lamdera-dev-watch.sh

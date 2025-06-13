@@ -11,6 +11,7 @@ A modern CLI tool to scaffold [Lamdera](https://lamdera.com) applications with b
 - 🧪 **Testing Ready** - lamdera-program-test integration for reliable tests
 - 📝 **Editor Support** - Cursor editor integration with custom rules
 - 🔧 **Dev Tools** - Hot reload, debugger toggle, and more
+- ⚡ **Bun Support** - Use Bun for 10x faster package installs
 
 ## Installation
 
@@ -51,6 +52,10 @@ create-lamdera-app --init
 - `--github <yes|no>` - Create GitHub repository
 - `--public/--private` - Repository visibility (with --github)
 - `--init` - Add features to existing project
+- `--package-manager <npm|bun>` - Choose package manager (default: npm)
+- `--pm <npm|bun>` - Shorthand for --package-manager
+- `--bun` - Use Bun package manager (same as --pm bun)
+- `--skip-install` - Skip package installation
 
 ### Shortcuts
 
@@ -134,6 +139,12 @@ create-lamdera-app --name my-app
 create-lamdera-app --name my-app --cursor yes --tailwind --test --i18n
 ```
 
+### Using Bun for faster installs
+```bash
+# Install Bun first: https://bun.sh
+create-lamdera-app --name my-app --tailwind --bun
+```
+
 ### Add Tailwind to existing project
 ```bash
 cd my-existing-app
@@ -149,12 +160,12 @@ npm run test:watch
 npm run test:coverage
 ```
 
-### Test All Flag Combinations
+### Test All Feature Combinations
 ```bash
 ./test-all-combinations.sh
 ```
 
-This creates 16 test applications with all possible flag combinations and verifies they compile correctly.
+This creates 8 test applications with essential feature combinations and verifies they compile correctly.
 
 ## Requirements
 

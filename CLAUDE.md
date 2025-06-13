@@ -4,21 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is `create-lamdera-app`, a CLI tool for scaffolding Lamdera applications. It's an npm package that helps users quickly create new Lamdera projects or add development utilities to existing ones.
+This is `create-lamdera-app`, a CLI tool for scaffolding Lamdera applications. It's an npm package that helps users quickly create new Lamdera projects with optional features like Tailwind CSS, i18n, dark mode, and testing support.
 
 ## Build and Development Commands
 
 ```bash
+# Install dependencies
+npm install
+
 # Run the CLI tool locally
-node index.js
+node index.js [options]
 
-# Create a new Lamdera project
-node index.js
-
-# Add utilities to existing Lamdera project
-node index.js --init
-
-# Run tests
+# Run unit tests
 npm test
 
 # Run tests in watch mode
@@ -26,26 +23,41 @@ npm run test:watch
 
 # Run tests with coverage
 npm run test:coverage
+
+# Test all feature combinations (creates 8 test apps)
+./test-all-combinations.sh
+
+# Run interactive testing on generated apps
+./test-manual-interactive.sh
+
+# Test a single generated app
+./test-single-app.sh app-name [port]
 ```
 
 ## Architecture
 
-The project consists of:
-- `index.js` - Main CLI entry point that handles project scaffolding
-- `/templates/` - Contains all files that get copied to new projects:
-  - Utility scripts (`lamdera-dev-watch.sh`, `toggle-debugger.py`, `openEditor.sh`)
-  - Configuration files (`.cursorrules`)
-  - Complete Lamdera starter project in `/lamdera-init/`
+### Core Structure
+- `index.js` - Main CLI entry point with all scaffolding logic
+- `/templates/` - Template files organized by feature:
+  - `/base/` - Basic Lamdera app structure
+  - `/utilities/` - Development scripts (lamdera-dev-watch.sh, toggle-debugger.py)
+  - `/features/` - Optional feature templates:
+    - `/tailwind/` - Tailwind CSS integration files
+    - `/test/` - lamdera-program-test setup
+    - `/i18n/` - Internationalization and dark mode
 
-## Key Implementation Details
+### Key Functions in index.js
+- `setupTailwind()` - Configures Tailwind CSS with concurrently for parallel processes
+- `setupLamderaTest()` - Converts to Effect pattern for testable code
+- `setupI18n()` - Adds i18n, dark mode, and localStorage persistence
+- `createUtilityFiles()` - Copies development utilities
+- `initializeLamderaProject()` - Copies base template files
 
-When working on this codebase:
-
-1. **Template Updates**: Any changes to the Lamdera starter code should be made in `/templates/lamdera-init/src/`
-2. **CLI Logic**: The main scaffolding logic is in `index.js` - it checks for Lamdera installation, prompts for configuration, and copies templates
-3. **Utility Scripts**: Shell and Python scripts in `/templates/` are copied as-is to new projects
-4. **Tailwind CSS**: The `setupTailwind` function handles npm initialization, Tailwind config, and script setup
-5. **lamdera-program-test**: The `setupLamderaTest` function replaces standard modules with Effect.* modules for testable code
+### Template Organization
+Templates follow a feature-based structure where each feature can be combined:
+- Base template provides minimal Lamdera app
+- Features are additive and designed to work together
+- Special handling for feature combinations (e.g., tailwind+i18n needs specific head.html)
 
 ## Lamdera-Specific Guidelines
 
@@ -58,37 +70,47 @@ From the included `.cursorrules` file:
 - Fix compilation errors one at a time
 - Store images directly under the `public/` directory
 
-## Recent Development Work
+## Critical Implementation Details
 
-### Test Suite Enhancements
-Enhanced the test suite from 41 to 49 tests with comprehensive cross-flag compatibility testing:
-- **Feature tests WITHOUT test mode**: Tests standard Elm with direct ports
-- **Feature tests WITH test mode**: Tests lamdera-program-test with Effect-wrapped ports
-- **Cross-flag combinations**: i18n, Tailwind, combined features with/without test mode
-- **Compilation verification**: Each test verifies Elm compilation succeeds
+### Package Manager Support
+- Supports both npm and Bun (10-100x faster installs)
+- Bun is auto-detected and preferred when available
+- Tailwind scripts use `concurrently` instead of `run-pty` for better compatibility
+- Scripts dynamically use `npx` or `bunx` based on package manager
 
-Key finding: With lamdera-program-test, LocalStorage still uses ports but wraps them with Effect.Command and Effect.Subscription.
+### Port Configuration
+All generated apps support custom ports via environment variable:
+```bash
+# For apps with Tailwind
+PORT=3000 npm start
+PORT=3000 bun run start
 
-### LocalStorage Persistence Fix
-Fixed localStorage persistence issue where settings weren't saved on page refresh:
-- **Problem**: Used timeout-based push pattern that didn't work on page reload
-- **Solution**: Implemented request-response pattern where Elm requests localStorage during init
-- **Changes**: Added `requestLocalStorage` port and command, updated init functions
-- **Pattern**: Similar to rails-elm-graphql-boilerplate implementation
+# For basic apps
+PORT=3000 ./lamdera-dev-watch.sh
+```
 
-### Template Architecture
-The template system supports two distinct patterns:
-- **Standard mode**: Direct Elm ports (`port storeLocalStorageValue_`)
-- **Test mode**: Effect-wrapped ports (`Command.sendToJs` with Effect modules)
+### Feature Interactions
+- **Tailwind + i18n**: Requires `tailwind-i18n-theme-head.html` template to include CSS link
+- **Test + i18n**: LocalStorage module uses Effect pattern with elm-pkg-js
+- **Test mode**: Replaces direct ports with Effect.Command/Effect.Subscription wrappers
+- **Cursor flag**: Only adds `.cursorrules` and `openEditor.sh`, doesn't affect other features
 
-### Known Issues
-- **chat-test-i18n compilation**: TYPE MISMATCH error where `requestLocalStorage_` port expects `E.Value -> Cmd msg` but receives `() -> Cmd msg`
-- This affects the combined i18n + test mode only
+## Testing Strategy
+
+The test suite validates:
+1. **Unit tests** (`npm test`) - Tests CLI logic and file operations
+2. **Integration tests** (`./test-all-combinations.sh`) - Creates 8 apps covering essential feature combinations
+3. **Manual tests** (`./test-manual-interactive.sh`) - Interactive testing of generated apps
+
+Test combinations focus on meaningful feature interactions:
+- Basic, Tailwind-only, Test-only, i18n-only
+- All two-feature combinations
+- All features combined
 
 ## Publishing
 
 This package is published to npm as `@CharlonTank/create-lamdera-app`. When preparing a release:
 1. Update version in `package.json`
-2. Ensure all template files are working correctly
-3. Test both new project creation and `--init` mode
-4. Run full test suite including cross-flag compatibility tests
+2. Run full test suite: `npm test && ./test-all-combinations.sh`
+3. Test manual installation: `npm pack && npm install -g CharlonTank-create-lamdera-app-*.tgz`
+4. Publish: `npm publish`

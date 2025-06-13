@@ -6,11 +6,11 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
+GRAY='\033[0;90m'
 NC='\033[0m' # No Color
 
 # Base directory for tests
 BASE_DIR="manual-tests"
-RESULTS_FILE="$BASE_DIR/recap.md"
 
 # Check if manual-tests directory exists
 if [ ! -d "$BASE_DIR" ]; then
@@ -19,7 +19,13 @@ if [ ! -d "$BASE_DIR" ]; then
     exit 1
 fi
 
+# Store the project root directory
+PROJECT_ROOT="$(pwd)"
+
 cd "$BASE_DIR"
+
+# Set results file path to be in project root
+RESULTS_FILE="$PROJECT_ROOT/test_recap.json"
 
 # Get all app directories - filter to essential combinations only
 all_apps=($(ls -d app-* 2>/dev/null | sort))
@@ -29,7 +35,6 @@ if [ ${#all_apps[@]} -gt 10 ]; then
     # Use simplified set
     apps=(
         "app-basic"
-        "app-basic-cursor"
         "app-tailwind"
         "app-test"
         "app-i18n"
@@ -53,13 +58,68 @@ fi
 
 if [ ${#apps[@]} -eq 0 ]; then
     echo -e "${RED}No test apps found!${NC}"
-    echo -e "${YELLOW}Run ./test-all-combinations.sh or ./test-all-combinations-simplified.sh first${NC}"
+    echo -e "${YELLOW}Run ./test-all-combinations.sh first${NC}"
     exit 1
 fi
 
-# Declare associative arrays properly
-declare -A results=()
-declare -A notes=()
+# Use regular arrays with indices instead of associative arrays
+# This avoids bash associative array issues
+unset app_results
+unset app_notes
+unset app_names
+app_results=()
+app_notes=()
+app_names=()
+
+# Track which apps have been tested - ensure it's empty
+unset tested_apps
+tested_apps=()
+
+# Helper function to get index for an app
+get_app_index() {
+    local app_name="$1"
+    local i
+    for i in "${!app_names[@]}"; do
+        if [[ "${app_names[$i]}" == "$app_name" ]]; then
+            echo "$i"
+            return 0
+        fi
+    done
+    echo "-1"
+    return 1
+}
+
+# Helper function to store result
+store_result() {
+    local app_name="$1"
+    local result="$2"
+    local note="$3"
+    
+    # Add to arrays
+    app_names+=("$app_name")
+    app_results+=("$result")
+    app_notes+=("$note")
+    
+    local idx=$((${#app_names[@]} - 1))
+}
+
+# Helper function to get result
+get_result() {
+    local app_name="$1"
+    local idx=$(get_app_index "$app_name")
+    if [ "$idx" -ge 0 ]; then
+        echo "${app_results[$idx]}"
+    fi
+}
+
+# Helper function to get note
+get_note() {
+    local app_name="$1"
+    local idx=$(get_app_index "$app_name")
+    if [ "$idx" -ge 0 ]; then
+        echo "${app_notes[$idx]}"
+    fi
+}
 
 # Function to clean up server processes
 cleanup_server() {
@@ -72,6 +132,142 @@ cleanup_server() {
     # Wait a moment for processes to die
     sleep 1
 }
+
+# Function to generate recap (for both normal exit and interruption)
+generate_recap() {
+    # Only generate if we tested at least one app
+    if [ ${#tested_apps[@]} -eq 0 ]; then
+        echo -e "${YELLOW}No apps were tested, skipping recap generation${NC}"
+        return
+    fi
+    
+    clear
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════╗"
+    echo -e "║     Test Results Summary                          ║"
+    echo -e "╚═══════════════════════════════════════════════════╝${NC}\n"
+
+    # Ensure we can write to the file
+    touch "$RESULTS_FILE" 2>/dev/null || {
+        echo -e "${RED}ERROR: Cannot write to $RESULTS_FILE${NC}"
+        echo -e "${YELLOW}Current directory: $(pwd)${NC}"
+        echo -e "${YELLOW}File permissions: $(ls -la "$RESULTS_FILE" 2>&1)${NC}"
+        return 1
+    }
+    
+    # Count working/failing
+    working=0
+    failing=0
+    not_tested=0
+
+    # Create JSON structure
+    echo '{' > "$RESULTS_FILE"
+    echo '  "generated": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",' >> "$RESULTS_FILE"
+    echo '  "summary": {' >> "$RESULTS_FILE"
+    echo '    "totalApps": '${#apps[@]}',' >> "$RESULTS_FILE"
+    echo '    "testedApps": '${#tested_apps[@]}',' >> "$RESULTS_FILE"
+    echo '    "interrupted": '$([ ${#tested_apps[@]} -lt ${#apps[@]} ] && echo "true" || echo "false") >> "$RESULTS_FILE"
+    echo '  },' >> "$RESULTS_FILE"
+    echo '  "results": {' >> "$RESULTS_FILE"
+    
+    # Add tested apps
+    first=true
+    for app in "${tested_apps[@]}"; do
+        features=$(get_features "$app")
+        status=$(get_result "$app")
+        note=$(get_note "$app")
+        
+        # Count status
+        if [[ "$status" == *"Working"* ]]; then
+            ((working++))
+            status_value="working"
+        else
+            ((failing++))
+            status_value="issues"
+        fi
+        
+        # Add comma for all but first entry
+        if [ "$first" = true ]; then
+            first=false
+        else
+            echo ',' >> "$RESULTS_FILE"
+        fi
+        
+        # Escape quotes in note
+        escaped_note=$(echo "$note" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+        
+        # Write app entry
+        echo -n '    "'$app'": {' >> "$RESULTS_FILE"
+        echo -n '"status": "'$status_value'",' >> "$RESULTS_FILE"
+        echo -n '"features": "'$(echo "$features" | xargs)'",' >> "$RESULTS_FILE"
+        echo -n '"note": "'$escaped_note'"' >> "$RESULTS_FILE"
+        echo -n '}' >> "$RESULTS_FILE"
+    done
+    
+    # Add untested apps if testing was interrupted
+    if [ ${#tested_apps[@]} -lt ${#apps[@]} ]; then
+        for app in "${apps[@]}"; do
+            if [[ ! " ${tested_apps[@]} " =~ " ${app} " ]]; then
+                ((not_tested++))
+                features=$(get_features "$app")
+                
+                echo ',' >> "$RESULTS_FILE"
+                echo -n '    "'$app'": {' >> "$RESULTS_FILE"
+                echo -n '"status": "not_tested",' >> "$RESULTS_FILE"
+                echo -n '"features": "'$(echo "$features" | xargs)'",' >> "$RESULTS_FILE"
+                echo -n '"note": ""' >> "$RESULTS_FILE"
+                echo -n '}' >> "$RESULTS_FILE"
+            fi
+        done
+    fi
+    
+    echo '' >> "$RESULTS_FILE"
+    echo '  },' >> "$RESULTS_FILE"
+    
+    # Add statistics
+    success_rate=0
+    if [ ${#tested_apps[@]} -gt 0 ]; then
+        success_rate=$(( working * 100 / ${#tested_apps[@]} ))
+    fi
+    
+    echo '  "statistics": {' >> "$RESULTS_FILE"
+    echo '    "working": '$working',' >> "$RESULTS_FILE"
+    echo '    "issues": '$failing',' >> "$RESULTS_FILE"
+    echo '    "notTested": '$not_tested',' >> "$RESULTS_FILE"
+    echo '    "successRate": '$success_rate >> "$RESULTS_FILE"
+    echo '  },' >> "$RESULTS_FILE"
+    
+    # Add test configuration
+    echo '  "configuration": {' >> "$RESULTS_FILE"
+    echo '    "port": 8000,' >> "$RESULTS_FILE"
+    echo '    "platform": "'$(uname -s)'"' >> "$RESULTS_FILE"
+    echo '  }' >> "$RESULTS_FILE"
+    echo '}' >> "$RESULTS_FILE"
+    
+    # Display results
+    echo -e "${BLUE}Results saved to: ${CYAN}$RESULTS_FILE${NC}\n"
+
+    echo -e "${GREEN}Summary:${NC}"
+    echo -e "  - Tested: ${CYAN}${#tested_apps[@]}${NC} of ${#apps[@]} apps"
+    echo -e "  - Working: ${GREEN}$working${NC}"
+    echo -e "  - Issues: ${RED}$failing${NC}"
+
+    # Show failing apps if any
+    if [ $failing -gt 0 ]; then
+        echo -e "\n${YELLOW}Apps with issues:${NC}"
+        for app in "${tested_apps[@]}"; do
+            status=$(get_result "$app")
+            if [[ "$status" == *"Issues"* ]]; then
+                # Show first line of notes only for summary
+                note=$(get_note "$app")
+                first_line=$(echo "$note" | head -1)
+                echo -e "  ${RED}$app${NC}: $first_line"
+            fi
+        done
+    fi
+}
+
+# Trap to handle interruption (Ctrl+C)
+trap 'echo -e "\n\n${YELLOW}Testing interrupted by user${NC}"; cleanup_server; generate_recap; echo -e "\n${GREEN}Partial results saved!${NC}"; exit 0' INT
 
 # Function to check if app has Tailwind
 has_tailwind() {
@@ -93,10 +289,16 @@ get_features() {
     local app=$1
     local features=""
     
-    [ -f "$app/.cursorrules" ] && features="${features}Cursor "
-    has_tailwind "$app" && features="${features}Tailwind "
-    has_tests "$app" && features="${features}Test "
-    has_i18n "$app" && features="${features}i18n "
+    # Check if we need to add the path prefix
+    local app_path="$app"
+    if [ ! -d "$app_path" ] && [ -d "./$app" ]; then
+        app_path="./$app"
+    fi
+    
+    [ -f "$app_path/.cursorrules" ] && features="${features}Cursor "
+    has_tailwind "$app_path" && features="${features}Tailwind "
+    has_tests "$app_path" && features="${features}Test "
+    has_i18n "$app_path" && features="${features}i18n "
     
     [ -z "$features" ] && features="Basic"
     echo "$features"
@@ -114,7 +316,7 @@ echo -e "  - Each app will launch automatically"
 echo -e "  - Test the app in your browser at http://localhost:8000"
 echo -e "  - Press ${GREEN}ENTER${NC} to mark as working and continue"
 echo -e "  - Type any text + ${GREEN}ENTER${NC} to add notes about issues"
-echo -e "  - Press ${RED}Ctrl+C${NC} to abort testing\n"
+echo -e "  - Press ${RED}Ctrl+C${NC} at any time to stop (your feedback will be saved)\n"
 
 echo -e "${CYAN}Press ENTER to start testing...${NC}"
 read
@@ -156,20 +358,43 @@ for i in "${!apps[@]}"; do
     # Test if app has tests and run them
     TEST_ERROR=""
     if has_tests "." && [ -z "$COMPILE_ERROR" ]; then
-        echo -e "${BLUE}Running tests...${NC}"
-        if ! elm-test-rs --compiler $(which lamdera) > test_output.txt 2>&1; then
-            TEST_ERROR=$(cat test_output.txt | tail -30)
+        echo -e "${BLUE}Running tests with elm-test-rs...${NC}"
+        # Run tests and show output directly
+        if ! elm-test-rs --compiler $(which lamdera); then
+            TEST_ERROR="Tests failed - see output above"
             echo -e "${RED}✗ Tests failed${NC}"
         else
-            echo -e "${GREEN}✓ Tests passed${NC}"
+            echo -e "${GREEN}✓ All tests passed${NC}"
         fi
-        rm -f test_output.txt
+        echo ""  # Add spacing after test output
+    fi
+    
+    # Determine package manager
+    PM="npm"
+    # Check for bun.lockb or if package.json has bunx in scripts
+    if [ -f "bun.lockb" ] || ([ -f "package.json" ] && grep -q "bunx" package.json); then
+        PM="bun"
     fi
     
     # Determine how to start the app
     if has_tailwind "."; then
-        echo -e "${YELLOW}Starting with npm start (Tailwind detected)...${NC}"
-        PORT=8000 npm start > server_output.txt 2>&1 &
+        # Check if node_modules exists
+        if [ ! -d "node_modules" ]; then
+            echo -e "${YELLOW}Warning: node_modules not found. Running $PM install...${NC}"
+            if [ "$PM" = "bun" ]; then
+                bun install
+            else
+                npm install
+            fi
+        fi
+        
+        # Use start:ci for non-TTY environments (like this test script)
+        echo -e "${YELLOW}Starting with $PM run start:ci (Tailwind detected, CI mode)...${NC}"
+        if [ "$PM" = "bun" ]; then
+            PORT=8000 bun run start:ci > server_output.txt 2>&1 &
+        else
+            PORT=8000 npm run start:ci > server_output.txt 2>&1 &
+        fi
         SERVER_PID=$!
     else
         echo -e "${YELLOW}Starting with lamdera-dev-watch.sh...${NC}"
@@ -177,9 +402,13 @@ for i in "${!apps[@]}"; do
         SERVER_PID=$!
     fi
     
-    # Wait for server to start
+    # Wait for server to start (give more time for Tailwind apps)
     echo -e "${BLUE}Waiting for server to start...${NC}"
-    sleep 3
+    if has_tailwind "."; then
+        sleep 5  # More time for Tailwind to compile
+    else
+        sleep 3
+    fi
     
     # Check if server is running
     SERVER_ERROR=""
@@ -187,10 +416,15 @@ for i in "${!apps[@]}"; do
         echo -e "${GREEN}✓ Server started successfully${NC}"
         echo -e "${CYAN}Visit: http://localhost:8000${NC}\n"
     else
-        echo -e "${RED}✗ Server failed to start${NC}\n"
-        SERVER_ERROR=$(tail -20 server_output.txt)
+        echo -e "${RED}✗ Server failed to start${NC}"
+        if [ -f "server_output.txt" ]; then
+            echo -e "${YELLOW}Server output:${NC}"
+            tail -10 server_output.txt
+            SERVER_ERROR=$(cat server_output.txt)
+        fi
+        echo ""
     fi
-    rm -f server_output.txt
+    # Don't remove server_output.txt yet, keep for debugging
     
     # Features to test
     echo -e "${YELLOW}Things to test:${NC}"
@@ -200,7 +434,6 @@ for i in "${!apps[@]}"; do
     has_i18n "." && echo -e "  - Language switcher works (EN/FR)"
     has_i18n "." && echo -e "  - Dark mode toggle works"
     has_i18n "." && echo -e "  - Settings persist on refresh"
-    has_tests "." && echo -e "  - Run: elm-test-rs --compiler \$(which lamdera)"
     
     # Check for automatic errors
     AUTO_ERRORS=""
@@ -215,26 +448,31 @@ for i in "${!apps[@]}"; do
     echo -e "\n${GREEN}Press ENTER if working, or type notes about issues:${NC}"
     read user_input
     
-    # Store result - use a clean key to avoid bash interpretation issues
-    app_key=$(echo "$app" | tr '-' '_')
-    
+    # Store result using the new method
     if [ -z "$user_input" ] && [ -z "$AUTO_ERRORS" ]; then
-        results[$app_key]="✓ Working"
-        notes[$app_key]=""
+        store_result "$app" "✓ Working" ""
     else
-        results[$app_key]="✗ Issues"
         # Combine automatic errors and user notes
+        local full_note=""
         if [ -n "$AUTO_ERRORS" ] && [ -n "$user_input" ]; then
-            notes[$app_key]="$AUTO_ERRORS | **User notes:** $user_input"
+            full_note="$AUTO_ERRORS | **User notes:** $user_input"
         elif [ -n "$AUTO_ERRORS" ]; then
-            notes[$app_key]="$AUTO_ERRORS"
+            full_note="$AUTO_ERRORS"
         else
-            notes[$app_key]="$user_input"
+            full_note="$user_input"
         fi
+        
+        store_result "$app" "✗ Issues" "$full_note"
     fi
+    
+    # Add to tested apps
+    tested_apps+=("$app")
     
     # Kill the server
     cleanup_server
+    
+    # Clean up server output file
+    rm -f server_output.txt
     
     # Return to manual-tests directory
     cd ..
@@ -243,113 +481,7 @@ for i in "${!apps[@]}"; do
     sleep 1
 done
 
-# Generate recap
-clear
-echo -e "${GREEN}╔═══════════════════════════════════════════════════╗"
-echo -e "║     Test Results Summary                          ║"
-echo -e "╚═══════════════════════════════════════════════════╝${NC}\n"
-
-# Create recap.md
-cat > "$RESULTS_FILE" << EOF
-# Manual Test Results
-Generated: $(date)
-
-## Summary
-
-Total apps tested: ${#apps[@]}
-
-## Results Table
-
-| App | Features | Status |
-|-----|----------|--------|
-EOF
-
-# Count working/failing
-working=0
-failing=0
-
-# Add results to table
-for app in "${apps[@]}"; do
-    features=$(get_features "$app")
-    app_key=$(echo "$app" | tr '-' '_')
-    status="${results[$app_key]}"
-    
-    # Count status
-    if [[ "$status" == *"Working"* ]]; then
-        ((working++))
-    else
-        ((failing++))
-    fi
-    
-    echo "| $app | $features | $status |" >> "$RESULTS_FILE"
-done
-
-# Add detailed errors section
-echo -e "\n## Detailed Issues\n" >> "$RESULTS_FILE"
-
-for app in "${apps[@]}"; do
-    app_key=$(echo "$app" | tr '-' '_')
-    if [[ "${results[$app_key]}" == *"Issues"* ]] && [ -n "${notes[$app_key]}" ]; then
-        echo "### $app" >> "$RESULTS_FILE"
-        echo "" >> "$RESULTS_FILE"
-        # Format multiline errors properly
-        if [[ "${notes[$app_key]}" == *"Compilation Error:"* ]] || [[ "${notes[$app_key]}" == *"Server Error:"* ]] || [[ "${notes[$app_key]}" == *"Test Error:"* ]]; then
-            # Split automatic errors and user notes
-            if [[ "${notes[$app_key]}" == *" | **User notes:** "* ]]; then
-                AUTO_PART="${notes[$app_key]%% | **User notes:** *}"
-                USER_PART="${notes[$app_key]##* | **User notes:** }"
-                echo "$AUTO_PART" | sed 's/\*\*Compilation Error:\*\*/#### Compilation Error\n```elm/' | sed 's/\*\*Server Error:\*\*/#### Server Error\n```/' | sed 's/\*\*Test Error:\*\*/#### Test Error\n```/' >> "$RESULTS_FILE"
-                echo '```' >> "$RESULTS_FILE"
-                echo "" >> "$RESULTS_FILE"
-                echo "#### User Notes" >> "$RESULTS_FILE"
-                echo "$USER_PART" >> "$RESULTS_FILE"
-            else
-                echo "${notes[$app_key]}" | sed 's/\*\*Compilation Error:\*\*/#### Compilation Error\n```elm/' | sed 's/\*\*Server Error:\*\*/#### Server Error\n```/' | sed 's/\*\*Test Error:\*\*/#### Test Error\n```/' >> "$RESULTS_FILE"
-                echo '```' >> "$RESULTS_FILE"
-            fi
-        else
-            echo "#### User Notes" >> "$RESULTS_FILE"
-            echo "${notes[$app_key]}" >> "$RESULTS_FILE"
-        fi
-        echo "" >> "$RESULTS_FILE"
-    fi
-done
-
-# Add summary stats
-cat >> "$RESULTS_FILE" << EOF
-
-## Statistics
-
-- **Working**: $working apps
-- **With Issues**: $failing apps
-- **Success Rate**: $(( working * 100 / ${#apps[@]} ))%
-
-## Test Configuration
-
-All apps were tested with:
-- Port: 8000
-- Browser: (manual check)
-- Platform: $(uname -s)
-EOF
-
-# Display results
-echo -e "${BLUE}Results saved to: ${CYAN}$RESULTS_FILE${NC}\n"
-
-echo -e "${GREEN}Summary:${NC}"
-echo -e "  - Working: ${GREEN}$working${NC}"
-echo -e "  - Issues: ${RED}$failing${NC}"
-
-# Show failing apps if any
-if [ $failing -gt 0 ]; then
-    echo -e "\n${YELLOW}Apps with issues:${NC}"
-    for app in "${apps[@]}"; do
-        app_key=$(echo "$app" | tr '-' '_')
-        if [[ "${results[$app_key]}" == *"Issues"* ]]; then
-            # Show first line of notes only for summary
-            first_line=$(echo "${notes[$app_key]}" | head -1)
-            echo -e "  ${RED}$app${NC}: $first_line"
-        fi
-    done
-fi
+# Generate recap using our function
+generate_recap
 
 echo -e "\n${GREEN}Testing complete!${NC}"

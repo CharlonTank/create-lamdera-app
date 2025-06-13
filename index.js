@@ -21,7 +21,8 @@ const parseArgs = () => {
     tailwind: null,
     test: null,
     i18n: null,
-    skipInstall: false
+    skipInstall: false,
+    packageManager: 'npm' // default to npm
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -107,6 +108,19 @@ const parseArgs = () => {
       case '--skip-install':
         parsed.skipInstall = true;
         break;
+      case '--package-manager':
+      case '--pm':
+        if (nextArg && (nextArg === 'npm' || nextArg === 'bun')) {
+          parsed.packageManager = nextArg;
+          i++;
+        } else {
+          console.error(chalk.red('--package-manager must be npm or bun'));
+          process.exit(1);
+        }
+        break;
+      case '--bun':
+        parsed.packageManager = 'bun';
+        break;
     }
   }
   
@@ -143,7 +157,10 @@ ${chalk.bold('Options:')}
   --no-test           Don't add lamdera-program-test
   --i18n <yes|no>     Add internationalization and dark mode (yes/no)
   --no-i18n           Don't add i18n and dark mode
-  --skip-install      Skip npm install for Tailwind projects
+  --skip-install      Skip package installation for Tailwind projects
+  --package-manager <npm|bun>  Choose package manager (default: npm)
+  --pm <npm|bun>      Shorthand for --package-manager
+  --bun               Use Bun package manager (shorthand for --pm bun)
   --version           Show version number
   --help, -h          Show this help message
 
@@ -236,12 +253,26 @@ function execCommand(command, showProgress = false) {
 }
 
 // Check prerequisites
-function checkPrerequisites() {
+function checkPrerequisites(packageManager = 'npm') {
   try {
     execSync('lamdera --version', { stdio: 'ignore' });
   } catch {
     console.error(chalk.red('Lamdera is not installed. Please install it first.'));
     process.exit(1);
+  }
+  
+  // Check if selected package manager is installed
+  if (packageManager === 'bun') {
+    try {
+      execSync('bun --version', { stdio: 'ignore' });
+    } catch {
+      console.error(chalk.red('Bun is not installed!'));
+      console.error(chalk.yellow('Please install Bun first:'));
+      console.error(chalk.cyan('  curl -fsSL https://bun.sh/install | bash'));
+      console.error(chalk.cyan('  or'));
+      console.error(chalk.cyan('  See https://bun.sh for platform-specific instructions'));
+      process.exit(1);
+    }
   }
 }
 
@@ -264,7 +295,7 @@ function createUtilityFiles(projectPath, useCursor) {
 }
 
 // Initialize Tailwind CSS
-function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall = false) {
+function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall = false, packageManager = 'npm') {
   console.log(chalk.blue('Setting up Tailwind CSS...'));
   
   // Save current directory and change to project path
@@ -272,8 +303,12 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
   process.chdir(projectPath);
   
   try {
-    // Initialize npm
-    execCommand('npm init -y', true);
+    // Initialize package.json
+    if (packageManager === 'bun') {
+      execCommand('bun init -y', true);
+    } else {
+      execCommand('npm init -y', true);
+    }
     
     // Wait a moment and verify package.json was created
     if (!fs.existsSync('./package.json')) {
@@ -282,12 +317,17 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
     
     // Install dependencies unless skipped
     if (!skipInstall) {
-      console.log(chalk.yellow('\n📦 Installing Tailwind CSS dependencies...'));
-      execCommand('npm install tailwindcss@^3', true);
-      execCommand('npm install --save-dev run-pty', true);
+      console.log(chalk.yellow(`\n📦 Installing Tailwind CSS dependencies with ${packageManager}...`));
+      if (packageManager === 'bun') {
+        execCommand('bun add tailwindcss@^3', true);
+        execCommand('bun add -d concurrently', true);
+      } else {
+        execCommand('npm install tailwindcss@^3', true);
+        execCommand('npm install --save-dev concurrently', true);
+      }
     } else {
-      console.log(chalk.yellow('\n⚠️  Skipping npm install as requested'));
-      console.log(chalk.gray('Run "npm install" manually later to install dependencies'));
+      console.log(chalk.yellow(`\n⚠️  Skipping ${packageManager} install as requested`));
+      console.log(chalk.gray(`Run "${packageManager} install" manually later to install dependencies`));
       
       // Still need to update package.json with dependencies
       const packageJsonPath = './package.json';
@@ -298,7 +338,7 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
       };
       packageJson.devDependencies = {
         ...packageJson.devDependencies,
-        "run-pty": "^5.0.0"
+        "concurrently": "^9.0.0"
       };
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     }
@@ -343,10 +383,14 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
     const packageJsonPath = './package.json';
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   
+  // Use bunx instead of npx for Bun
+  const runner = packageManager === 'bun' ? 'bunx' : 'npx';
+  
   packageJson.scripts = {
     ...packageJson.scripts,
-    "start": "run-pty % \"lamdera live --port=${PORT:-8000}\" % \"tailwindcss -i ./src/styles.css -o ./public/styles.css --watch\"",
-    "start:hot": "run-pty % \"PORT=${PORT:-8000} ./lamdera-dev-watch.sh\" % \"tailwindcss -i ./src/styles.css -o ./public/styles.css --watch\""
+    "start": `${runner} concurrently -k -s first "lamdera live --port=\${PORT:-8000}" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+    "start:hot": `${runner} concurrently -k -s first "PORT=\${PORT:-8000} ./lamdera-dev-watch.sh" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+    "start:ci": `(lamdera live --port=\${PORT:-8000} &) && ${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch`
   };
   
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
@@ -432,7 +476,10 @@ function setupI18n(projectPath, baseDir, useTest = false, useTailwind = false) {
   }
   
   // Replace head.html with appropriate i18n version
-  if (useTest) {
+  if (useTailwind) {
+    // Tailwind needs the styles.css link
+    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'tailwind-i18n-theme-head.html'), path.join(projectPath, 'head.html'));
+  } else if (useTest) {
     // Test mode uses inline localStorage handler (for elm-pkg-js)
     fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'i18n-theme-head.html'), path.join(projectPath, 'head.html'));
   } else {
@@ -532,7 +579,7 @@ async function initializeExistingProject() {
     
     // Set up Tailwind if requested
     if (useTailwind) {
-      setupTailwind(process.cwd(), __dirname, true, parsedArgs.skipInstall); // Skip frontend since it already exists
+      setupTailwind(process.cwd(), __dirname, true, parsedArgs.skipInstall, parsedArgs.packageManager); // Skip frontend since it already exists
     }
     
     // Check if user wants i18n
@@ -654,10 +701,10 @@ async function createNewProject() {
 
     // Set up Tailwind if requested
     if (useTailwind && !useTest && !useI18n) {
-      setupTailwind(projectPath, __dirname, false, parsedArgs.skipInstall);
+      setupTailwind(projectPath, __dirname, false, parsedArgs.skipInstall, parsedArgs.packageManager);
     } else if (useTailwind && !useTest && useI18n) {
       // When both Tailwind and i18n are enabled, setup Tailwind infrastructure but let i18n handle Frontend
-      setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall);
+      setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall, parsedArgs.packageManager);
     }
 
     // Set up lamdera-program-test if requested
@@ -666,7 +713,7 @@ async function createNewProject() {
       // If both Tailwind and test are enabled, set up Tailwind after test
       if (useTailwind) {
         console.log(chalk.yellow('Note: When using lamdera-program-test with Tailwind, you\'ll need to manually integrate Tailwind examples.'));
-        setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall);
+        setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall, parsedArgs.packageManager);
       }
     }
 
@@ -708,24 +755,25 @@ async function createNewProject() {
     }
 
     console.log(chalk.green('Project setup complete!'));
+    const pm = parsedArgs.packageManager;
     console.log(chalk.blue('To start development server:'));
     console.log(chalk.cyan(`cd ${projectName}`));
     if (useTailwind) {
       if (parsedArgs.skipInstall) {
-        console.log(chalk.yellow('\n⚠️  npm install was skipped'));
-        console.log(chalk.cyan('npm install'));
+        console.log(chalk.yellow(`\n⚠️  ${pm} install was skipped`));
+        console.log(chalk.cyan(`${pm} install`));
         console.log(chalk.gray('(Run this first to install dependencies)'));
         console.log('');
       }
-      console.log(chalk.cyan('npm start'));
+      console.log(chalk.cyan(`${pm} ${pm === 'bun' ? 'run' : ''} start`));
       console.log(chalk.gray('(This runs both Lamdera and Tailwind CSS watcher)'));
       console.log('');
       console.log(chalk.blue('To use a different port:'));
-      console.log(chalk.cyan('PORT=3000 npm start'));
+      console.log(chalk.cyan(`PORT=3000 ${pm} ${pm === 'bun' ? 'run' : ''} start`));
       console.log('');
       console.log(chalk.blue('For hot-reload with elm-pkg-js:'));
-      console.log(chalk.cyan('npm run start:hot'));
-      console.log(chalk.gray('(Also supports PORT=3000 npm run start:hot)'));
+      console.log(chalk.cyan(`${pm} run start:hot`));
+      console.log(chalk.gray(`(Also supports PORT=3000 ${pm} run start:hot)`));
     } else {
       console.log(chalk.cyan('./lamdera-dev-watch.sh'));
       console.log('');
@@ -759,7 +807,7 @@ async function createNewProject() {
 
 async function main() {
   try {
-    checkPrerequisites();
+    checkPrerequisites(parsedArgs.packageManager);
 
     if (parsedArgs.init) {
       await initializeExistingProject();

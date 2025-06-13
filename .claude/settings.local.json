@@ -28,7 +28,17 @@
       "Bash(tree:*)",
       "Bash(echo:*)",
       "Bash(npm init:*)",
-      "Bash(time npm install:*)"
+      "Bash(time npm install:*)",
+      "Bash(./install-bun.sh:*)",
+      "Bash(fish -c:*)",
+      "Bash(./test-manual-interactive.sh:*)",
+      "Bash(./test-all-combinations-simplified.sh:*)",
+      "Bash(bun run:*)",
+      "Bash(bunx tailwindcss:*)",
+      "Bash(bun install:*)",
+      "Bash(bunx run-pty:*)",
+      "Bash(./test-commands.sh)",
+      "Bash(bun add:*)"
     ],
     "deny": []
   }
