@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Test - Pure Darklang Implementation</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        h1 { 
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .test-section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        button {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        pre {
+            background: #1e293b;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .badge {
+            background: linear-gradient(90deg, #10b981, #059669);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Mock Test - Pure Darklang Implementation</h1>
+    <p>This page simulates the Darklang endpoints locally for testing the structure.</p>
+    <div class="badge">Zero Dependencies</div>
+    <div class="badge" style="background: linear-gradient(90deg, #3b82f6, #1d4ed8);">Local Mock</div>
+
+    <div class="test-section">
+        <h2>1. Test Project Creation</h2>
+        <button onclick="testBasicProject()">Create Basic Project</button>
+        <button onclick="testFullProject()">Create Full-Featured Project</button>
+        <button onclick="testAllCombinations()">Test All Combinations</button>
+        <pre id="project-result"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test File Generation</h2>
+        <button onclick="showExpectedFiles('basic')">Show Basic Files</button>
+        <button onclick="showExpectedFiles('tailwind')">Show Tailwind Files</button>
+        <button onclick="showExpectedFiles('test')">Show Test Files</button>
+        <button onclick="showExpectedFiles('i18n')">Show i18n Files</button>
+        <pre id="files-result"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Endpoints</h2>
+        <button onclick="listEndpoints()">List All Endpoints</button>
+        <pre id="endpoints-result"></pre>
+    </div>
+
+    <script>
+        // Mock implementation of Darklang functions
+        const mockCreateProject = (config) => {
+            const files = [
+                { path: "elm.json", content: "{ elm project config }" },
+                { path: "src/Frontend.elm", content: "module Frontend exposing (..)" },
+                { path: "src/Backend.elm", content: "module Backend exposing (..)" },
+                { path: "src/Types.elm", content: "module Types exposing (..)" },
+                { path: "src/Env.elm", content: "module Env exposing (..)" },
+                { path: "head.html", content: "<script>hot reload</script>" }
+            ];
+
+            if (config.useTailwind) {
+                files.push({ path: "tailwind.config.js", content: "module.exports = {}" });
+                files.push({ path: "src/styles.css", content: "/* Darklang CSS */" });
+                files.push({ path: "package.json", content: "{ scripts only }" });
+            }
+
+            if (config.useTest) {
+                files.push({ path: "tests/Tests.elm", content: "module Tests exposing (..)" });
+                files.push({ path: "elm-test-rs.json", content: "{}" });
+            }
+
+            if (config.useI18n) {
+                files.push({ path: "src/I18n.elm", content: "module I18n exposing (..)" });
+                files.push({ path: "src/Theme.elm", content: "module Theme exposing (..)" });
+                files.push({ path: "src/LocalStorage.elm", content: "module LocalStorage exposing (..)" });
+            }
+
+            if (config.useCursor) {
+                files.push({ path: ".cursorrules", content: "Lamdera rules" });
+            }
+
+            return {
+                files: files,
+                devServerUrl: `https://mock.darklang.com/dev/${Math.random().toString(36).substr(2, 9)}`,
+                projectUrl: `https://mock.darklang.com/app/${config.name}`,
+                instructions: [
+                    "✅ Project created with zero dependencies!",
+                    "🌐 Visit the dev server URL to start coding",
+                    "📝 Use the built-in editor - no local tools needed"
+                ]
+            };
+        };
+
+        function testBasicProject() {
+            const config = {
+                name: "test-basic",
+                useTailwind: false,
+                useTest: false,
+                useI18n: false,
+                useCursor: false
+            };
+            const result = mockCreateProject(config);
+            document.getElementById('project-result').innerHTML = 
+                `<span class="success">✅ Basic project created!</span>\n\n` +
+                JSON.stringify(result, null, 2);
+        }
+
+        function testFullProject() {
+            const config = {
+                name: "test-full",
+                useTailwind: true,
+                useTest: true,
+                useI18n: true,
+                useCursor: true
+            };
+            const result = mockCreateProject(config);
+            document.getElementById('project-result').innerHTML = 
+                `<span class="success">✅ Full-featured project created!</span>\n\n` +
+                JSON.stringify(result, null, 2);
+        }
+
+        function testAllCombinations() {
+            const combinations = [
+                { name: "basic", features: [] },
+                { name: "tailwind", features: ["tailwind"] },
+                { name: "test", features: ["test"] },
+                { name: "i18n", features: ["i18n"] },
+                { name: "tailwind-test", features: ["tailwind", "test"] },
+                { name: "tailwind-i18n", features: ["tailwind", "i18n"] },
+                { name: "test-i18n", features: ["test", "i18n"] },
+                { name: "all", features: ["tailwind", "test", "i18n"] }
+            ];
+
+            const results = combinations.map(combo => {
+                const config = {
+                    name: `test-${combo.name}`,
+                    useTailwind: combo.features.includes("tailwind"),
+                    useTest: combo.features.includes("test"),
+                    useI18n: combo.features.includes("i18n"),
+                    useCursor: false
+                };
+                const project = mockCreateProject(config);
+                return {
+                    name: combo.name,
+                    filesCount: project.files.length,
+                    success: true
+                };
+            });
+
+            document.getElementById('project-result').innerHTML = 
+                `<span class="success">✅ All combinations tested!</span>\n\n` +
+                results.map(r => `${r.name}: ${r.filesCount} files ✓`).join('\n');
+        }
+
+        function showExpectedFiles(type) {
+            const filesByType = {
+                basic: [
+                    "elm.json",
+                    "src/Frontend.elm",
+                    "src/Backend.elm", 
+                    "src/Types.elm",
+                    "src/Env.elm",
+                    "head.html"
+                ],
+                tailwind: [
+                    "...basic files",
+                    "tailwind.config.js",
+                    "src/styles.css",
+                    "package.json (scripts only)"
+                ],
+                test: [
+                    "...basic files",
+                    "tests/Tests.elm",
+                    "elm-test-rs.json"
+                ],
+                i18n: [
+                    "...basic files",
+                    "src/I18n.elm",
+                    "src/Theme.elm",
+                    "src/LocalStorage.elm",
+                    "elm-pkg-js/localStorage.js"
+                ]
+            };
+
+            document.getElementById('files-result').innerHTML = 
+                `<span class="success">Expected files for ${type}:</span>\n\n` +
+                filesByType[type].join('\n');
+        }
+
+        function listEndpoints() {
+            const endpoints = [
+                "GET  /cli                          - Web-based CLI interface",
+                "GET  /health                       - API health check",
+                "POST /project/create-pure          - Create project (JSON)",
+                "GET  /create                       - Quick create (URL params)",
+                "GET  /templates/list               - List available templates",
+                "",
+                "GET  /dev/:projectId               - Development server",
+                "GET  /dev/:projectId/editor        - Code editor",
+                "POST /dev/:projectId/debug-toggle  - Toggle debug mode",
+                "POST /dev/:projectId/css           - Process CSS",
+                "GET  /dev/:projectId/tests         - Test runner",
+                "GET  /dev/:projectId/file/:name    - Read file",
+                "POST /dev/:projectId/file/:name    - Save file",
+                "",
+                "GET  /test/interactive             - Interactive test UI",
+                "POST /test/all-combinations        - Run all tests",
+                "POST /test/run-single              - Run single test",
+                "GET  /test/unit                    - Run unit tests",
+                "GET  /test/status                  - Test system status"
+            ];
+
+            document.getElementById('endpoints-result').innerHTML = 
+                `<span class="success">All Darklang endpoints:</span>\n\n` +
+                endpoints.join('\n');
+        }
+
+        // Auto-run on load
+        window.onload = () => {
+            console.log('🚀 Mock test page loaded - simulating Darklang endpoints');
+        };
+    </script>
+</body>
+</html>

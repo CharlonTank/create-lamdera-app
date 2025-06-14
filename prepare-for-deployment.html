@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darklang Deployment Helper</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        h1, h2 { 
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .file-section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .copy-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            float: right;
+        }
+        .copy-btn:hover { opacity: 0.9; }
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        pre {
+            background: #1e293b;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .endpoint-list {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .endpoint-list h3 { 
+            color: #60a5fa; 
+            margin-top: 0;
+        }
+        .endpoint {
+            font-family: monospace;
+            color: #a5f3fc;
+            margin: 0.25rem 0;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #10b981;
+        }
+        .checklist {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .checklist h3 { color: #10b981; }
+        .checklist label {
+            display: block;
+            margin: 0.5rem 0;
+            cursor: pointer;
+        }
+        .checklist input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+        .warning {
+            background: rgba(251, 146, 60, 0.1);
+            border: 1px solid #fb923c;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Darklang Deployment Helper</h1>
+    <p>This page helps you prepare your code for Darklang deployment. Copy each section into your Darklang canvas.</p>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-value">4</div>
+            <div>Dark Files</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">22</div>
+            <div>Endpoints</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">0</div>
+            <div>Dependencies</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">5,219</div>
+            <div>Lines of Code</div>
+        </div>
+    </div>
+
+    <div class="warning">
+        <strong>⚠️ Important:</strong> You'll need to load the actual .dark files and copy their contents to Darklang. This helper shows you what endpoints each file contains.
+    </div>
+
+    <div class="checklist">
+        <h3>📋 Pre-Deployment Checklist</h3>
+        <label><input type="checkbox"> Created Darklang account</label>
+        <label><input type="checkbox"> Created new canvas named "create-lamdera-app"</label>
+        <label><input type="checkbox"> Have all 4 .dark files ready</label>
+        <label><input type="checkbox"> Understand the deployment process</label>
+    </div>
+
+    <div class="file-section">
+        <h2>1. main.dark (Core API)</h2>
+        <button class="copy-btn" onclick="showCopyInstructions('main.dark')">📋 Copy Instructions</button>
+        
+        <div class="endpoint-list">
+            <h3>Endpoints in this file:</h3>
+            <div class="endpoint">[/ GET] - Welcome page</div>
+            <div class="endpoint">[/health GET] - API health check</div>
+            <div class="endpoint">[/project/create-pure POST] - Create project</div>
+            <div class="endpoint">[/templates/list GET] - List templates</div>
+        </div>
+        
+        <p>This file contains:</p>
+        <ul>
+            <li>Project configuration types</li>
+            <li>File generation functions</li>
+            <li>Template processing logic</li>
+            <li>All feature implementations (Tailwind, i18n, testing)</li>
+        </ul>
+    </div>
+
+    <div class="file-section">
+        <h2>2. cli.dark (Web Interface)</h2>
+        <button class="copy-btn" onclick="showCopyInstructions('cli.dark')">📋 Copy Instructions</button>
+        
+        <div class="endpoint-list">
+            <h3>Endpoints in this file:</h3>
+            <div class="endpoint">[/cli GET] - Interactive web terminal</div>
+            <div class="endpoint">[/create GET] - Quick create API</div>
+            <div class="endpoint">[/cli/create POST] - CLI create endpoint</div>
+            <div class="endpoint">[/cli/list GET] - List templates</div>
+            <div class="endpoint">[/cli/help GET] - Help documentation</div>
+            <div class="endpoint">[/compare GET] - Compare implementations</div>
+        </div>
+        
+        <p>This file contains:</p>
+        <ul>
+            <li>Complete web-based terminal UI</li>
+            <li>Command parsing and execution</li>
+            <li>Interactive project creation</li>
+        </ul>
+    </div>
+
+    <div class="file-section">
+        <h2>3. dev-server.dark (Development Tools)</h2>
+        <button class="copy-btn" onclick="showCopyInstructions('dev-server.dark')">📋 Copy Instructions</button>
+        
+        <div class="endpoint-list">
+            <h3>Endpoints in this file:</h3>
+            <div class="endpoint">[/dev/:projectId GET] - Development server UI</div>
+            <div class="endpoint">[/dev/:projectId/editor GET] - Code editor</div>
+            <div class="endpoint">[/dev/:projectId/debug-toggle POST] - Toggle debug</div>
+            <div class="endpoint">[/dev/:projectId/css POST] - Process CSS</div>
+            <div class="endpoint">[/dev/:projectId/tests GET] - Test runner</div>
+            <div class="endpoint">[/dev/:projectId/file/:filename GET] - Read file</div>
+            <div class="endpoint">[/dev/:projectId/file/:filename POST] - Save file</div>
+        </div>
+        
+        <p>This file contains:</p>
+        <ul>
+            <li>Cloud development environment</li>
+            <li>Web-based code editor</li>
+            <li>Hot reload via WebSockets</li>
+            <li>CSS processing (replaces Tailwind npm)</li>
+        </ul>
+    </div>
+
+    <div class="file-section">
+        <h2>4. test-runner.dark (Testing Framework)</h2>
+        <button class="copy-btn" onclick="showCopyInstructions('test-runner.dark')">📋 Copy Instructions</button>
+        
+        <div class="endpoint-list">
+            <h3>Endpoints in this file:</h3>
+            <div class="endpoint">[/test/interactive GET] - Interactive test UI</div>
+            <div class="endpoint">[/test/all-combinations POST] - Test all combos</div>
+            <div class="endpoint">[/test/run-single POST] - Run single test</div>
+            <div class="endpoint">[/test/unit GET] - Unit tests</div>
+            <div class="endpoint">[/test/status GET] - Test system status</div>
+        </div>
+        
+        <p>This file contains:</p>
+        <ul>
+            <li>Complete test framework</li>
+            <li>8 feature combination tests</li>
+            <li>Unit test suite</li>
+            <li>Interactive test runner UI</li>
+        </ul>
+    </div>
+
+    <div class="checklist">
+        <h3>📋 Deployment Steps</h3>
+        <label><input type="checkbox"> Copy main.dark to Darklang canvas</label>
+        <label><input type="checkbox"> Copy cli.dark to Darklang canvas</label>
+        <label><input type="checkbox"> Copy dev-server.dark to Darklang canvas</label>
+        <label><input type="checkbox"> Copy test-runner.dark to Darklang canvas</label>
+        <label><input type="checkbox"> Create "projects" datastore</label>
+        <label><input type="checkbox"> Create "dev_projects" datastore</label>
+        <label><input type="checkbox"> Test /health endpoint</label>
+        <label><input type="checkbox"> Test /cli interface</label>
+        <label><input type="checkbox"> Test project creation</label>
+        <label><input type="checkbox"> All tests passing</label>
+    </div>
+
+    <div class="file-section" style="background: rgba(16, 185, 129, 0.1); border-color: #10b981;">
+        <h2>🎉 Post-Deployment Testing</h2>
+        <p>Once deployed, test these URLs (replace [your-canvas] with your canvas name):</p>
+        <pre>
+# Health check
+curl https://[your-canvas].builtwithdark.com/health
+
+# Web CLI
+open https://[your-canvas].builtwithdark.com/cli
+
+# Quick create
+curl "https://[your-canvas].builtwithdark.com/create?name=test"
+
+# Interactive tests
+open https://[your-canvas].builtwithdark.com/test/interactive
+
+# API endpoint list
+curl https://[your-canvas].builtwithdark.com/test/status
+        </pre>
+    </div>
+
+    <script>
+        function showCopyInstructions(filename) {
+            alert(`To deploy ${filename}:
+
+1. Open the ${filename} file in your text editor
+2. Select ALL content (Cmd+A or Ctrl+A)
+3. Copy it (Cmd+C or Ctrl+C)
+4. In your Darklang canvas, paste the content
+5. The endpoints will auto-create!
+
+Note: Make sure to copy the ENTIRE file contents.`);
+        }
+
+        // Save checklist state
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                localStorage.setItem(this.parentElement.textContent.trim(), this.checked);
+            });
+            
+            // Restore state
+            const saved = localStorage.getItem(checkbox.parentElement.textContent.trim());
+            if (saved === 'true') checkbox.checked = true;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,689 @@
+// Pure Darklang Test Runner
+// REPLACES: test-all-combinations.sh, test-manual-interactive.sh, jest tests
+// Zero dependencies - all testing in the cloud!
+
+// ====================================================================
+// TEST CONFIGURATION
+// ====================================================================
+
+type TestCombination = {
+  name: String,
+  features: List<String>,
+  description: String
+}
+
+type TestResult = {
+  combination: TestCombination,
+  success: Bool,
+  errors: List<String>,
+  duration: Int,
+  filesCreated: Int
+}
+
+// ====================================================================
+// TEST ALL COMBINATIONS (REPLACES test-all-combinations.sh)
+// ====================================================================
+
+[/test/all-combinations POST]
+let testAllCombinations (request) =
+  let combinations = [
+    { name = "basic", features = [], description = "Basic Lamdera app" },
+    { name = "tailwind", features = ["tailwind"], description = "With Tailwind CSS" },
+    { name = "test", features = ["test"], description = "With testing support" },
+    { name = "i18n", features = ["i18n"], description = "With i18n and themes" },
+    { name = "tailwind-test", features = ["tailwind", "test"], description = "Tailwind + Testing" },
+    { name = "tailwind-i18n", features = ["tailwind", "i18n"], description = "Tailwind + i18n" },
+    { name = "test-i18n", features = ["test", "i18n"], description = "Testing + i18n" },
+    { name = "all-features", features = ["tailwind", "test", "i18n"], description = "All features" }
+  ]
+  
+  let results = combinations |> List.map (testCombination)
+  
+  let summary = {
+    totalTests = List.length results,
+    passed = results |> List.filter (\r -> r.success) |> List.length,
+    failed = results |> List.filter (\r -> not r.success) |> List.length,
+    totalDuration = results |> List.map (\r -> r.duration) |> List.sum,
+    results = results
+  }
+  
+  Http.respond 200 {
+    message = "🧪 Test suite completed with zero dependencies!",
+    summary = summary,
+    details = results |> List.map formatTestResult
+  }
+
+let testCombination (combo: TestCombination): TestResult =
+  let startTime = Time.now
+  
+  let config = {
+    name = "test-app-" ++ combo.name,
+    useCursor = false,
+    createRepo = false,
+    repoVisibility = "private",
+    useTailwind = List.contains "tailwind" combo.features,
+    useTest = List.contains "test" combo.features,
+    useI18n = List.contains "i18n" combo.features,
+    packageManager = "none"
+  }
+  
+  try
+    let project = createPureDarklangProject config
+    let errors = validateProject project config
+    
+    {
+      combination = combo,
+      success = List.isEmpty errors,
+      errors = errors,
+      duration = Time.diff Time.now startTime,
+      filesCreated = List.length project.files
+    }
+  catch error ->
+    {
+      combination = combo,
+      success = false,
+      errors = [error.message],
+      duration = Time.diff Time.now startTime,
+      filesCreated = 0
+    }
+
+// ====================================================================
+// INTERACTIVE TESTING (REPLACES test-manual-interactive.sh)
+// ====================================================================
+
+[/test/interactive GET]
+let interactiveTestRunner (request) =
+  let html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Test Runner - Create Lamdera App</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #374151;
+        }
+        h1 {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .test-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .test-card:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .test-card h3 {
+            color: #60a5fa;
+            margin-bottom: 0.5rem;
+        }
+        .features {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+        .feature-tag {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .run-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .run-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .run-all-btn {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        .results {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .result-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+        }
+        .result-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .zero-deps-badge {
+            background: linear-gradient(90deg, #10b981, #059669);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Interactive Test Runner</h1>
+            <p>Test all feature combinations with zero dependencies!</p>
+            <div style="margin-top: 1rem;">
+                <span class="zero-deps-badge">Zero Dependencies</span>
+                <span class="zero-deps-badge" style="background: linear-gradient(90deg, #3b82f6, #1d4ed8);">Cloud-Native</span>
+                <span class="zero-deps-badge" style="background: linear-gradient(90deg, #8b5cf6, #6d28d9);">Real-Time Testing</span>
+            </div>
+        </div>
+        
+        <button class="run-btn run-all-btn" onclick="runAllTests()">
+            🚀 Run All Tests
+        </button>
+        
+        <div class="test-grid" id="test-grid">
+            <!-- Test cards will be generated here -->
+        </div>
+        
+        <div class="results" id="results" style="display: none;">
+            <h2>📊 Test Results</h2>
+            <div id="results-content"></div>
+        </div>
+    </div>
+    
+    <script>
+        const testCombinations = [
+            { id: 'basic', name: 'Basic App', features: [], description: 'Minimal Lamdera application' },
+            { id: 'tailwind', name: 'Tailwind CSS', features: ['tailwind'], description: 'With cloud-native CSS utilities' },
+            { id: 'test', name: 'Testing Support', features: ['test'], description: 'With Effect pattern for testing' },
+            { id: 'i18n', name: 'i18n & Themes', features: ['i18n'], description: 'Multi-language and dark mode' },
+            { id: 'tailwind-test', name: 'Tailwind + Testing', features: ['tailwind', 'test'], description: 'CSS utilities with tests' },
+            { id: 'tailwind-i18n', name: 'Tailwind + i18n', features: ['tailwind', 'i18n'], description: 'Styled multi-language app' },
+            { id: 'test-i18n', name: 'Testing + i18n', features: ['test', 'i18n'], description: 'Testable international app' },
+            { id: 'all', name: 'All Features', features: ['tailwind', 'test', 'i18n'], description: 'Kitchen sink example' }
+        ];
+        
+        // Generate test cards
+        function generateTestCards() {
+            const grid = document.getElementById('test-grid');
+            grid.innerHTML = testCombinations.map(test => `
+                <div class="test-card" id="card-${test.id}">
+                    <h3>${test.name}</h3>
+                    <p style="color: #9ca3af; font-size: 0.9rem;">${test.description}</p>
+                    <div class="features">
+                        ${test.features.length === 0 ? '<span style="color: #6b7280;">No additional features</span>' : 
+                          test.features.map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                    </div>
+                    <button class="run-btn" onclick="runSingleTest('${test.id}')">
+                        Run Test
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        async function runSingleTest(testId) {
+            const test = testCombinations.find(t => t.id === testId);
+            const card = document.getElementById(`card-${testId}`);
+            const button = card.querySelector('.run-btn');
+            
+            button.innerHTML = '<span class="spinner"></span> Running...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/test/run-single', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: `test-${testId}`,
+                        features: test.features
+                    })
+                });
+                
+                const result = await response.json();
+                showSingleResult(test, result);
+                
+                button.innerHTML = '✅ Complete';
+                button.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            } catch (error) {
+                button.innerHTML = '❌ Failed';
+                button.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                showSingleResult(test, { success: false, error: error.message });
+            }
+        }
+        
+        async function runAllTests() {
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results-content').innerHTML = '<p>Running all tests...</p>';
+            
+            try {
+                const response = await fetch('/test/all-combinations', { method: 'POST' });
+                const data = await response.json();
+                
+                displayResults(data);
+            } catch (error) {
+                document.getElementById('results-content').innerHTML = 
+                    `<div class="result-error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function showSingleResult(test, result) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            
+            const resultClass = result.success ? 'result-success' : 'result-error';
+            const icon = result.success ? '✅' : '❌';
+            
+            document.getElementById('results-content').innerHTML = `
+                <div class="${resultClass} result-item">
+                    <div>
+                        <strong>${icon} ${test.name}</strong>
+                        ${result.success ? 
+                          `<p>Project created successfully with ${result.filesCreated || 0} files</p>` :
+                          `<p>Error: ${result.error || 'Unknown error'}</p>`}
+                    </div>
+                    ${result.devUrl ? 
+                      `<a href="${result.devUrl}" target="_blank" style="color: #3b82f6;">Open Dev Server →</a>` : 
+                      ''}
+                </div>
+            ` + document.getElementById('results-content').innerHTML;
+        }
+        
+        function displayResults(data) {
+            const content = document.getElementById('results-content');
+            const summary = data.summary;
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <h3>Summary</h3>
+                    <p>Total: ${summary.totalTests} | Passed: ${summary.passed} | Failed: ${summary.failed}</p>
+                    <p>Total Duration: ${summary.totalDuration}ms</p>
+                </div>
+                <div>
+                    ${data.details.map(detail => `
+                        <div class="result-item ${detail.success ? 'result-success' : 'result-error'}">
+                            <div>
+                                <strong>${detail.success ? '✅' : '❌'} ${detail.name}</strong>
+                                <p>${detail.description}</p>
+                                ${detail.errors && detail.errors.length > 0 ? 
+                                  `<p style="color: #ef4444;">Errors: ${detail.errors.join(', ')}</p>` : ''}
+                            </div>
+                            <span>${detail.duration}ms</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Initialize
+        generateTestCards();
+    </script>
+</body>
+</html>"""
+  
+  Http.respond 200 html { contentType = "text/html" }
+
+// ====================================================================
+// SINGLE TEST EXECUTION
+// ====================================================================
+
+[/test/run-single POST]
+let runSingleTest (request) =
+  let body = request.body |> Json.parse
+  let name = body |> Json.get "name"
+  let features = body |> Json.get "features"
+  
+  let config = {
+    name = name,
+    useCursor = false,
+    createRepo = false,
+    repoVisibility = "private",
+    useTailwind = List.contains "tailwind" features,
+    useTest = List.contains "test" features,
+    useI18n = List.contains "i18n" features,
+    packageManager = "none"
+  }
+  
+  try
+    let project = createPureDarklangProject config
+    let projectId = generateProjectId
+    
+    // Save project for development
+    saveProject projectId {
+      id = projectId,
+      name = name,
+      files = Dict.fromList (project.files |> List.map (\f -> (f.path, f.content))),
+      config = config,
+      lastModified = Time.now,
+      isActive = true
+    }
+    
+    Http.respond 200 {
+      success = true,
+      message = "Test project created successfully",
+      filesCreated = List.length project.files,
+      devUrl = project.devServerUrl,
+      projectId = projectId,
+      features = features
+    }
+  catch error ->
+    Http.respond 500 {
+      success = false,
+      error = error.message
+    }
+
+// ====================================================================
+// UNIT TEST REPLACEMENT (REPLACES jest tests)
+// ====================================================================
+
+[/test/unit GET]
+let runUnitTests (request) =
+  let tests = [
+    testProjectCreation,
+    testFeatureFlags,
+    testFileGeneration,
+    testTemplateProcessing,
+    testCSSGeneration,
+    testI18nSupport,
+    testEffectPattern
+  ]
+  
+  let results = tests |> List.map runTest
+  
+  Http.respond 200 {
+    message = "Unit tests completed",
+    total = List.length results,
+    passed = results |> List.filter (\r -> r.passed) |> List.length,
+    failed = results |> List.filter (\r -> not r.passed) |> List.length,
+    results = results
+  }
+
+type TestCase = {
+  name: String,
+  test: Unit -> TestResult
+}
+
+type UnitTestResult = {
+  name: String,
+  passed: Bool,
+  error: Option<String>,
+  duration: Int
+}
+
+let runTest (testCase: TestCase): UnitTestResult =
+  let startTime = Time.now
+  try
+    let result = testCase.test ()
+    {
+      name = testCase.name,
+      passed = true,
+      error = None,
+      duration = Time.diff Time.now startTime
+    }
+  catch error ->
+    {
+      name = testCase.name,
+      passed = false,
+      error = Some error.message,
+      duration = Time.diff Time.now startTime
+    }
+
+// Individual unit tests
+let testProjectCreation =
+  {
+    name = "Project creation with basic config",
+    test = \() ->
+      let config = {
+        name = "test-project",
+        useCursor = false,
+        createRepo = false,
+        repoVisibility = "private",
+        useTailwind = false,
+        useTest = false,
+        useI18n = false,
+        packageManager = "none"
+      }
+      let project = createPureDarklangProject config
+      assert (List.length project.files > 0) "Project should have files"
+      assert (project.devServerUrl != "") "Project should have dev URL"
+  }
+
+let testFeatureFlags =
+  {
+    name = "Feature flags work correctly",
+    test = \() ->
+      let config = {
+        name = "feature-test",
+        useCursor = true,
+        createRepo = false,
+        repoVisibility = "private",
+        useTailwind = true,
+        useTest = true,
+        useI18n = true,
+        packageManager = "none"
+      }
+      let project = createPureDarklangProject config
+      let fileNames = project.files |> List.map (\f -> f.path)
+      
+      assert (List.contains ".cursorrules" fileNames) "Should have cursor rules"
+      assert (List.contains "tailwind.config.js" fileNames) "Should have tailwind config"
+      assert (List.contains "tests/Tests.elm" fileNames) "Should have test file"
+      assert (List.contains "src/I18n.elm" fileNames) "Should have i18n module"
+  }
+
+let testFileGeneration =
+  {
+    name = "All required files are generated",
+    test = \() ->
+      let config = basicConfig "file-test"
+      let project = createPureDarklangProject config
+      let fileNames = project.files |> List.map (\f -> f.path)
+      
+      let requiredFiles = [
+        "src/Frontend.elm",
+        "src/Backend.elm",
+        "src/Types.elm",
+        "src/Env.elm",
+        "elm.json",
+        "head.html"
+      ]
+      
+      requiredFiles |> List.iter (\file ->
+        assert (List.contains file fileNames) ("Missing required file: " ++ file)
+      )
+  }
+
+let testTemplateProcessing =
+  {
+    name = "Templates are processed correctly",
+    test = \() ->
+      let config = {
+        name = "template-test",
+        useCursor = false,
+        createRepo = false,
+        repoVisibility = "private",
+        useTailwind = true,
+        useTest = false,
+        useI18n = true,
+        packageManager = "none"
+      }
+      let project = createPureDarklangProject config
+      
+      // Check that tailwind + i18n uses special head.html
+      let headFile = project.files |> List.find (\f -> f.path == "head.html")
+      assert (String.contains headFile.content "styles.css") "Head should include CSS"
+      assert (String.contains headFile.content "theme") "Head should include theme support"
+  }
+
+let testCSSGeneration =
+  {
+    name = "CSS utilities are generated",
+    test = \() ->
+      let config = tailwindConfig "css-test"
+      let project = createPureDarklangProject config
+      
+      let cssFile = project.files |> List.find (\f -> f.path == "src/styles.css")
+      assert (String.contains cssFile.content "/* Darklang-generated CSS") "Should have CSS header"
+      assert (String.contains cssFile.content "flex") "Should have flex utilities"
+      assert (String.contains cssFile.content "grid") "Should have grid utilities"
+  }
+
+let testI18nSupport =
+  {
+    name = "i18n generates correct modules",
+    test = \() ->
+      let config = i18nConfig "i18n-test"
+      let project = createPureDarklangProject config
+      
+      let i18nFile = project.files |> List.find (\f -> f.path == "src/I18n.elm")
+      assert (String.contains i18nFile.content "Language") "Should define Language type"
+      assert (String.contains i18nFile.content "translations") "Should have translations"
+      
+      let themeFile = project.files |> List.find (\f -> f.path == "src/Theme.elm")
+      assert (String.contains themeFile.content "Theme") "Should define Theme type"
+  }
+
+let testEffectPattern =
+  {
+    name = "Effect pattern for testing",
+    test = \() ->
+      let config = testConfig "effect-test"
+      let project = createPureDarklangProject config
+      
+      let frontendFile = project.files |> List.find (\f -> f.path == "src/Frontend.elm")
+      assert (String.contains frontendFile.content "Effect.") "Should use Effect pattern"
+      assert (not (String.contains frontendFile.content "Cmd.")) "Should not use Cmd directly"
+  }
+
+// ====================================================================
+// VALIDATION HELPERS
+// ====================================================================
+
+let validateProject (project: ProjectResponse) (config: ProjectConfig): List<String> =
+  let errors = []
+  
+  // Check required files exist
+  let requiredFiles = ["src/Frontend.elm", "src/Backend.elm", "src/Types.elm", "elm.json"]
+  let missingFiles = requiredFiles |> List.filter (\f -> 
+    not (project.files |> List.any (\file -> file.path == f))
+  )
+  
+  let errors = if List.isEmpty missingFiles then errors 
+               else errors ++ ["Missing files: " ++ String.join ", " missingFiles]
+  
+  // Validate feature-specific files
+  let errors = if config.useTailwind && not (hasFile project "tailwind.config.js") then
+                 errors ++ ["Missing tailwind.config.js"]
+               else errors
+               
+  let errors = if config.useTest && not (hasFile project "tests/Tests.elm") then
+                 errors ++ ["Missing tests/Tests.elm"]
+               else errors
+               
+  let errors = if config.useI18n && not (hasFile project "src/I18n.elm") then
+                 errors ++ ["Missing src/I18n.elm"]
+               else errors
+  
+  errors
+
+let hasFile (project: ProjectResponse) (path: String): Bool =
+  project.files |> List.any (\f -> f.path == path)
+
+let formatTestResult (result: TestResult): Dict<String, Any> =
+  {
+    name = result.combination.name,
+    description = result.combination.description,
+    success = result.success,
+    errors = result.errors,
+    duration = result.duration,
+    filesCreated = result.filesCreated
+  }
+
+// ====================================================================
+// TEST STATUS ENDPOINT
+// ====================================================================
+
+[/test/status GET]
+let testStatus (request) =
+  Http.respond 200 {
+    message = "🧪 Pure Darklang Test Runner",
+    status = "operational",
+    features = [
+      "Unit test runner (replaces Jest)",
+      "Integration test runner (replaces shell scripts)",
+      "Interactive test UI (browser-based)",
+      "All combinations testing",
+      "Zero dependencies",
+      "Cloud-native execution"
+    ],
+    endpoints = {
+      "/test/unit" = "Run unit tests",
+      "/test/all-combinations" = "Test all feature combinations",
+      "/test/interactive" = "Interactive test UI",
+      "/test/run-single" = "Run single test configuration"
+    },
+    replacements = [
+      "jest.config.js → Cloud unit tests",
+      "test-all-combinations.sh → /test/all-combinations",
+      "test-manual-interactive.sh → /test/interactive",
+      "test/*.test.js → Darklang test functions"
+    ]
+  }
