@@ -431,6 +431,9 @@ function setupLamderaTest(projectPath, baseDir) {
   // Copy test template
   fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-tests.elm'), path.join(projectPath, 'tests', 'Tests.elm'));
   
+  // Copy TestsRunner.elm
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-TestsRunner.elm'), path.join(projectPath, 'tests', 'TestsRunner.elm'));
+  
   // Copy elm-test-rs.json
   fs.copyFileSync(path.join(templatePath, 'features', 'test', 'elm-test-rs.json'), path.join(projectPath, 'elm-test-rs.json'));
   
