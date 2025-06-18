@@ -1,6 +1,6 @@
 {
   "name": "create-lamdera-app",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "A modern CLI tool to scaffold Lamdera applications with Tailwind CSS, i18n, dark mode, and testing support",
   "keywords": [
     "lamdera",

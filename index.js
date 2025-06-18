@@ -447,6 +447,9 @@ function setupLamderaTest(projectPath, baseDir) {
   // Copy elm-test-rs.json
   fs.copyFileSync(path.join(templatePath, 'features', 'test', 'elm-test-rs.json'), path.join(projectPath, 'elm-test-rs.json'));
   
+  // Copy HOW_TO_WRITE_TESTS.md
+  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'HOW_TO_WRITE_TESTS.md'), path.join(projectPath, 'HOW_TO_WRITE_TESTS.md'));
+  
   // Set up pre-commit hook
   const githooksDir = path.join(projectPath, '.githooks');
   fs.mkdirSync(githooksDir, { recursive: true });

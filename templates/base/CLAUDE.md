@@ -204,3 +204,4 @@ Example use cases:
    - Test multiple clients by connecting multiple frontends with different session IDs
    - Use `TF.checkBackend` to assert backend state
    - Tests simulate real user interactions and verify the full application flow
+   - **For comprehensive testing documentation, see [HOW_TO_WRITE_TESTS.md](./HOW_TO_WRITE_TESTS.md)**
