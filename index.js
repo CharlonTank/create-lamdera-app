@@ -437,6 +437,26 @@ function setupLamderaTest(projectPath, baseDir) {
   // Copy elm-test-rs.json
   fs.copyFileSync(path.join(templatePath, 'features', 'test', 'elm-test-rs.json'), path.join(projectPath, 'elm-test-rs.json'));
   
+  // Set up pre-commit hook
+  const githooksDir = path.join(projectPath, '.githooks');
+  fs.mkdirSync(githooksDir, { recursive: true });
+  
+  // Copy pre-commit hook
+  const preCommitSource = path.join(templatePath, 'features', 'test', '.githooks', 'pre-commit');
+  const preCommitDest = path.join(githooksDir, 'pre-commit');
+  fs.copyFileSync(preCommitSource, preCommitDest);
+  
+  // Make pre-commit hook executable
+  fs.chmodSync(preCommitDest, '755');
+  
+  // Configure git to use .githooks directory
+  try {
+    execSync('git config core.hooksPath .githooks', { cwd: projectPath, stdio: 'ignore' });
+    console.log(chalk.green('Pre-commit hook configured!'));
+  } catch (error) {
+    // Git might not be initialized yet, that's okay
+  }
+  
   console.log(chalk.green('lamdera-program-test setup complete!'));
   console.log(chalk.gray('To run tests: elm-test-rs --compiler $(which lamdera)'));
 }
