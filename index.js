@@ -7,6 +7,16 @@ const path = require('path');
 const readline = require('readline');
 const { version } = require('./package.json');
 
+// Configure git hooks helper
+function configureGitHooks(projectPath) {
+  try {
+    execSync('git config core.hooksPath .githooks', { cwd: projectPath, stdio: 'ignore' });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 // Parse command line arguments early
 const args = process.argv.slice(2);
 
@@ -450,11 +460,8 @@ function setupLamderaTest(projectPath, baseDir) {
   fs.chmodSync(preCommitDest, '755');
   
   // Configure git to use .githooks directory
-  try {
-    execSync('git config core.hooksPath .githooks', { cwd: projectPath, stdio: 'ignore' });
+  if (configureGitHooks(projectPath)) {
     console.log(chalk.green('Pre-commit hook configured!'));
-  } catch (error) {
-    // Git might not be initialized yet, that's okay
   }
   
   console.log(chalk.green('lamdera-program-test setup complete!'));
@@ -767,6 +774,12 @@ async function createNewProject() {
 
         console.log(chalk.blue('Creating GitHub repository...'));
         execCommand('git init');
+        
+        // Configure git hooks if test mode is enabled
+        if (useTest && fs.existsSync(path.join(projectPath, '.githooks', 'pre-commit'))) {
+          configureGitHooks(projectPath);
+        }
+        
         execCommand('git add .');
         execCommand('git commit -m "Initial commit"');
         execCommand(`gh repo create "${projectName}" ${visibilityFlag} --source=. --remote=origin --push`);
