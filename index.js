@@ -287,14 +287,19 @@ function checkPrerequisites(packageManager = 'npm') {
 }
 
 // Create utility files
-function createUtilityFiles(projectPath, useCursor) {
+function createUtilityFiles(projectPath, useCursor, useTest = false) {
   const templatePath = path.join(__dirname, 'templates');
 
   // Copy template files
   fs.copyFileSync(path.join(templatePath, 'utilities', 'lamdera-dev-watch.sh'), path.join(projectPath, 'lamdera-dev-watch.sh'));
   fs.chmodSync(path.join(projectPath, 'lamdera-dev-watch.sh'), '755');
 
-  fs.copyFileSync(path.join(templatePath, 'utilities', 'toggle-debugger.py'), path.join(projectPath, 'toggle-debugger.py'));
+  // Use the appropriate toggle-debugger.py version based on test mode
+  const toggleDebuggerSource = useTest
+    ? path.join(templatePath, 'features', 'test', 'test-toggle-debugger.py')
+    : path.join(templatePath, 'utilities', 'toggle-debugger.py');
+  
+  fs.copyFileSync(toggleDebuggerSource, path.join(projectPath, 'toggle-debugger.py'));
   fs.chmodSync(path.join(projectPath, 'toggle-debugger.py'), '755');
 
   if (useCursor) {
@@ -604,9 +609,15 @@ async function initializeExistingProject() {
       }
     }
 
+    // Check if it's a test project
+    const elmJson = JSON.parse(fs.readFileSync('./elm.json', 'utf8'));
+    const isTestProject = elmJson.dependencies && 
+                         elmJson.dependencies.direct && 
+                         elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
+    
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
-    createUtilityFiles(process.cwd(), useCursor);
+    createUtilityFiles(process.cwd(), useCursor, isTestProject);
     
     // Check if user wants Tailwind
     let useTailwind = parsedArgs.tailwind;
@@ -633,7 +644,9 @@ async function initializeExistingProject() {
     if (useI18n) {
       // Check if this is a test project
       const elmJson = JSON.parse(fs.readFileSync('./elm.json', 'utf8'));
-      const isTestProject = elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
+      const isTestProject = elmJson.dependencies && 
+                           elmJson.dependencies.direct && 
+                           elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
       setupI18n(process.cwd(), __dirname, isTestProject);
     }
 
@@ -736,7 +749,7 @@ async function createNewProject() {
 
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
-    createUtilityFiles(projectPath, useCursor);
+    createUtilityFiles(projectPath, useCursor, useTest);
 
     // Set up Tailwind if requested
     if (useTailwind && !useTest && !useI18n) {

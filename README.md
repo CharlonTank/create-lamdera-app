@@ -193,6 +193,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - [ ] Add authentication support
 - [ ] Add elm-review integration
 - [ ] Add Capacitor support for mobile app development
+- [ ] Add toggle_debugger.py support for lamdera-program-test mode
 
 ## License
 

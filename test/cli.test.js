@@ -1291,5 +1291,32 @@ exit 0`);
       expect(testOutput).toContain('Running tests');
       expect(testOutput).toContain('Test passed');
     });
+
+    test('should use test-specific toggle-debugger.py when test flag is enabled', () => {
+      const projectName = 'test-toggle-debugger-project';
+      
+      // Mock commands
+      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
+      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
+      
+      execSync(
+        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --test yes --no-cursor --no-github`,
+        { encoding: 'utf8' }
+      );
+      
+      const projectPath = path.join(tempDir, projectName);
+      
+      // Check that toggle-debugger.py exists and contains test-specific code
+      const toggleDebuggerPath = path.join(projectPath, 'toggle-debugger.py');
+      expect(fs.existsSync(toggleDebuggerPath)).toBe(true);
+      
+      const toggleDebuggerContent = fs.readFileSync(toggleDebuggerPath, 'utf8');
+      expect(toggleDebuggerContent).toContain('Effect.Lamdera.backend');
+      expect(toggleDebuggerContent).toContain('Debuggy.App.backend');
+      expect(toggleDebuggerContent).toContain('NoOpBackendMsg');
+      expect(toggleDebuggerContent).toContain('Effect.Command');
+      expect(toggleDebuggerContent).toContain('Effect.Time');
+      expect(toggleDebuggerContent).toContain('Effect.Http');
+    });
   });
 });
