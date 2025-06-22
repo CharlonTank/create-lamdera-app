@@ -161,7 +161,7 @@ view model =
 
 
 viewHeader : UserConfig -> FrontendModel -> Html FrontendMsg
-viewHeader userConfig model =
+viewHeader ({ t } as userConfig) model =
     div [ class "bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-lg p-4" ]
         [ div [ class "flex flex-wrap justify-between items-center gap-4" ]
             [ h1 [ class "text-2xl font-bold text-white" ] [ text t.appTitle ]
@@ -182,7 +182,7 @@ viewLanguageSelector userConfig currentLanguage =
 
 
 viewLanguageButton : UserConfig -> Language -> Language -> String -> Html FrontendMsg
-viewLanguageButton userConfig currentLanguage targetLanguage flag =
+viewLanguageButton ({ t } as userConfig) currentLanguage targetLanguage flag =
     button
         [ onClick (ChangeLanguage targetLanguage)
         , class <|
@@ -210,7 +210,7 @@ viewThemeSelector userConfig currentPreference =
 
 
 viewThemeButton : UserConfig -> UserPreference -> UserPreference -> String -> Html FrontendMsg
-viewThemeButton userConfig currentPreference targetPreference icon =
+viewThemeButton ({ t } as userConfig) currentPreference targetPreference icon =
     button
         [ onClick (ChangeTheme targetPreference)
         , class <|

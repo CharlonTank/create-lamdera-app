@@ -225,7 +225,7 @@ viewThemeSelector userConfig currentPreference =
 
 
 viewThemeButton : UserConfig -> UserPreference -> UserPreference -> String -> Html FrontendMsg
-viewThemeButton userConfig currentPreference targetPreference icon =
+viewThemeButton ({ c, t } as userConfig) currentPreference targetPreference icon =
     button
         [ onClick (ChangeTheme targetPreference)
         , Attr.style "padding" "0.5rem"
