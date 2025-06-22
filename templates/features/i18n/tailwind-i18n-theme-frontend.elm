@@ -13,12 +13,6 @@ import Types exposing (..)
 import Url
 
 
-type alias UserConfig =
-    { t : Translation
-    , isDark : Bool
-    }
-
-
 app =
     Lamdera.frontend
         { init = init
@@ -103,13 +97,13 @@ updateFromBackend msg model =
 view : FrontendModel -> Browser.Document FrontendMsg
 view model =
     let
-        userConfig =
+        ({ t, isDark } as userConfig) =
             getUserConfig model.localStorage
         
         darkClass =
-            if userConfig.isDark then "dark" else ""
+            if isDark then "dark" else ""
     in
-    { title = userConfig.t.appTitle
+    { title = t.appTitle
     , body =
         [ div [ class darkClass ]
             [ div [ class "min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 dark:from-purple-900 dark:via-pink-900 dark:to-red-900 transition-colors duration-300" ]
@@ -121,43 +115,43 @@ view model =
                     , div [ class "text-center mb-12 mt-8" ]
                         [ img [ Attr.src "https://lamdera.app/lamdera-logo-black.png", class "h-20 mx-auto mb-8 drop-shadow-lg dark:invert" ] []
                         , h1 [ class "text-5xl font-bold text-white mb-4 drop-shadow-lg" ] 
-                            [ text userConfig.t.appTitle ]
+                            [ text t.appTitle ]
                         , p [ class "text-xl text-white/90" ] 
-                            [ text userConfig.t.welcome ]
+                            [ text t.welcome ]
                         ]
                     
                     -- Cards Section
                     , div [ class "grid md:grid-cols-3 gap-6 mb-12" ]
                         [ -- Card 1
-                          viewCard "🚀" userConfig.t.fastDevelopment userConfig.t.fastDevelopmentDesc "purple"
+                          viewCard "🚀" t.fastDevelopment t.fastDevelopmentDesc "purple"
                         
                         -- Card 2
-                        , viewCard "🎨" userConfig.t.beautifulDesign userConfig.t.beautifulDesignDesc "pink"
+                        , viewCard "🎨" t.beautifulDesign t.beautifulDesignDesc "pink"
                         
                         -- Card 3
-                        , viewCard "⚡" userConfig.t.hotReload userConfig.t.hotReloadDesc "red"
+                        , viewCard "⚡" t.hotReload t.hotReloadDesc "red"
                         ]
                     
                     -- Button Examples
                     , div [ class "text-center space-y-4" ]
-                        [ h2 [ class "text-3xl font-bold text-white mb-6" ] [ text userConfig.t.buttonExamples ]
+                        [ h2 [ class "text-3xl font-bold text-white mb-6" ] [ text t.buttonExamples ]
                         , div [ class "flex flex-wrap gap-4 justify-center" ]
                             [ button [ class "px-6 py-3 bg-blue-500 dark:bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 dark:hover:bg-blue-800 transform hover:scale-105 transition-all duration-200" ]
-                                [ text userConfig.t.primaryButton ]
+                                [ text t.primaryButton ]
                             , button [ class "px-6 py-3 bg-green-500 dark:bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 dark:hover:bg-green-800 transform hover:scale-105 transition-all duration-200" ]
-                                [ text userConfig.t.successButton ]
+                                [ text t.successButton ]
                             , button [ class "px-6 py-3 bg-gray-800 dark:bg-gray-700 text-white font-semibold rounded-lg shadow-md hover:bg-gray-900 dark:hover:bg-gray-600 transform hover:scale-105 transition-all duration-200" ]
-                                [ text userConfig.t.darkButton ]
+                                [ text t.darkButton ]
                             , button [ class "px-6 py-3 bg-white dark:bg-gray-200 text-purple-600 dark:text-purple-700 font-semibold rounded-lg shadow-md hover:bg-gray-100 dark:hover:bg-gray-300 transform hover:scale-105 transition-all duration-200" ]
-                                [ text userConfig.t.lightButton ]
+                                [ text t.lightButton ]
                             ]
                         ]
                     
                     -- Footer
                     , div [ class "mt-16 text-center text-white/80" ]
-                        [ p [ class "mb-2" ] [ text userConfig.t.editMessage ]
+                        [ p [ class "mb-2" ] [ text t.editMessage ]
                         , p [ class "text-sm" ] 
-                            [ text userConfig.t.tailwindMessage ]
+                            [ text t.tailwindMessage ]
                         ]
                     ]
                 ]
@@ -170,7 +164,7 @@ viewHeader : UserConfig -> FrontendModel -> Html FrontendMsg
 viewHeader userConfig model =
     div [ class "bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-lg p-4" ]
         [ div [ class "flex flex-wrap justify-between items-center gap-4" ]
-            [ h1 [ class "text-2xl font-bold text-white" ] [ text userConfig.t.appTitle ]
+            [ h1 [ class "text-2xl font-bold text-white" ] [ text t.appTitle ]
             , div [ class "flex flex-wrap items-center gap-4" ]
                 [ viewLanguageSelector userConfig model.localStorage.language
                 , viewThemeSelector userConfig model.localStorage.userPreference
@@ -200,9 +194,9 @@ viewLanguageButton userConfig currentLanguage targetLanguage flag =
         ]
         [ text (flag ++ " " ++ 
             if targetLanguage == EN then 
-                userConfig.t.english 
+                t.english 
             else 
-                userConfig.t.french)
+                t.french)
         ]
 
 
@@ -228,13 +222,13 @@ viewThemeButton userConfig currentPreference targetPreference icon =
         , Attr.title
             (case targetPreference of
                 LightMode ->
-                    userConfig.t.lightTheme
+                    t.lightTheme
 
                 DarkMode ->
-                    userConfig.t.darkTheme
+                    t.darkTheme
 
                 SystemMode ->
-                    userConfig.t.systemTheme
+                    t.systemTheme
             )
         ]
         [ text icon ]

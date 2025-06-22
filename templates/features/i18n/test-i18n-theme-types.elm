@@ -2,10 +2,16 @@ module Types exposing (..)
 
 import Browser exposing (UrlRequest)
 import Effect.Browser.Navigation exposing (Key)
-import I18n exposing (Language)
+import I18n exposing (Language, Translation)
 import LocalStorage exposing (LocalStorage)
-import Theme exposing (UserPreference)
+import Theme exposing (Theme, UserPreference)
 import Url exposing (Url)
+
+
+type alias UserConfig =
+    { t : Translation
+    , c : Theme
+    }
 
 
 type alias FrontendModel =

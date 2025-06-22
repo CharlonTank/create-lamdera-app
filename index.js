@@ -501,12 +501,18 @@ function setupI18n(projectPath, baseDir, useTest = false, useTailwind = false) {
   }
   fs.copyFileSync(path.join(templatePath, 'features', 'i18n', frontendTemplate), path.join(projectPath, 'src', 'Frontend.elm'));
   
-  // Replace Types with appropriate version
-  if (useTest) {
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'test-i18n-theme-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
+  // Replace Types with appropriate version based on flags
+  let typesTemplate;
+  if (useTailwind && useTest) {
+    typesTemplate = 'test-tailwind-i18n-theme-types.elm';
+  } else if (useTailwind) {
+    typesTemplate = 'tailwind-i18n-theme-types.elm';
+  } else if (useTest) {
+    typesTemplate = 'test-i18n-theme-types.elm';
   } else {
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'i18n-theme-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
+    typesTemplate = 'i18n-theme-types.elm';
   }
+  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', typesTemplate), path.join(projectPath, 'src', 'Types.elm'));
   
   // Replace head.html with appropriate i18n version
   if (useTailwind) {

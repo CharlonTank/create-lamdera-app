@@ -1,34 +1,37 @@
 module Types exposing (..)
 
 import Browser exposing (UrlRequest)
-import Browser.Navigation exposing (Key)
+import Effect.Browser.Navigation exposing (Key)
 import I18n exposing (Language, Translation)
 import LocalStorage exposing (LocalStorage)
-import Theme exposing (Theme, UserPreference)
+import Theme exposing (UserPreference)
 import Url exposing (Url)
 
 
 type alias UserConfig =
     { t : Translation
-    , c : Theme
+    , isDark : Bool
     }
 
 
 type alias FrontendModel =
     { key : Key
     , localStorage : LocalStorage
-    , message : String
+    , counter : Int
+    , clientId : String
     }
 
 
 type alias BackendModel =
-    { message : String
+    { counter : Int
     }
 
 
 type FrontendMsg
     = UrlClicked UrlRequest
     | UrlChanged Url
+    | Increment
+    | Decrement
     | NoOpFrontendMsg
     | ReceivedLocalStorage LocalStorage
     | ChangeLanguage Language
@@ -36,7 +39,9 @@ type FrontendMsg
 
 
 type ToBackend
-    = NoOpToBackend
+    = UserIncrement
+    | UserDecrement
+    | GetCounter
 
 
 type BackendMsg
@@ -44,4 +49,4 @@ type BackendMsg
 
 
 type ToFrontend
-    = NoOpToFrontend
+    = CounterNewValue Int String -- value and clientId who triggered it

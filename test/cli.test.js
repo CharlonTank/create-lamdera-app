@@ -880,6 +880,69 @@ exit 0`;
       expect(localStorageContent).toContain('port receiveLocalStorage_');
       expect(localStorageContent).toContain('type alias LocalStorage');
     });
+
+    test('should define UserConfig in Types.elm with i18n', () => {
+      const projectName = 'userconfig-types-test';
+      
+      // Mock lamdera command
+      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
+      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
+      
+      execSync(
+        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --i18n yes --no-cursor --no-github`,
+        { encoding: 'utf8' }
+      );
+      
+      const projectPath = path.join(tempDir, projectName);
+      
+      // Check that UserConfig is defined in Types.elm
+      const typesContent = fs.readFileSync(path.join(projectPath, 'src/Types.elm'), 'utf8');
+      expect(typesContent).toContain('type alias UserConfig');
+      expect(typesContent).toContain('t : Translation');
+      expect(typesContent).toContain('c : Theme');
+      
+      // Check that Frontend.elm does NOT define UserConfig locally
+      const frontendContent = fs.readFileSync(path.join(projectPath, 'src/Frontend.elm'), 'utf8');
+      expect(frontendContent).not.toMatch(/^type alias UserConfig/m);
+      expect(frontendContent).toContain('import Types exposing (..)');
+    });
+
+    test('should define UserConfig with isDark for Tailwind i18n', () => {
+      const projectName = 'userconfig-tailwind-test';
+      
+      // Mock commands
+      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
+      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
+      
+      const npmScript = `#!/bin/bash
+if [ "$1" = "init" ]; then
+  echo '{"name":"${projectName}","version":"1.0.0","scripts":{}}' > package.json
+fi
+if [ "$1" = "pkg" ] && [ "$2" = "set" ]; then
+  exit 0
+fi`;
+      fs.writeFileSync(path.join(tempDir, 'npm'), npmScript);
+      fs.chmodSync(path.join(tempDir, 'npm'), '755');
+      
+      execSync(
+        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --tailwind yes --i18n yes --no-cursor --no-github`,
+        { encoding: 'utf8' }
+      );
+      
+      const projectPath = path.join(tempDir, projectName);
+      
+      // Check that UserConfig is defined in Types.elm with isDark
+      const typesContent = fs.readFileSync(path.join(projectPath, 'src/Types.elm'), 'utf8');
+      expect(typesContent).toContain('type alias UserConfig');
+      expect(typesContent).toContain('t : Translation');
+      expect(typesContent).toContain('isDark : Bool');
+      expect(typesContent).not.toContain('c : Theme');
+      
+      // Check that Frontend.elm does NOT define UserConfig locally
+      const frontendContent = fs.readFileSync(path.join(projectPath, 'src/Frontend.elm'), 'utf8');
+      expect(frontendContent).not.toMatch(/^type alias UserConfig/m);
+      expect(frontendContent).toContain('import Types exposing (..)');
+    });
   });
 
   describe('Feature tests WITHOUT test mode', () => {

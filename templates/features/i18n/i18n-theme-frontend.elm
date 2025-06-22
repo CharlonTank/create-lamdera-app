@@ -13,12 +13,6 @@ import Types exposing (..)
 import Url
 
 
-type alias UserConfig =
-    { t : Translation
-    , c : Theme
-    }
-
-
 app =
     Lamdera.frontend
         { init = init
@@ -103,14 +97,14 @@ updateFromBackend msg model =
 view : FrontendModel -> Browser.Document FrontendMsg
 view model =
     let
-        userConfig =
+        ({ c, t } as userConfig) =
             getUserConfig model.localStorage
     in
-    { title = userConfig.t.appTitle
+    { title = t.appTitle
     , body =
         [ div
-            [ Attr.style "background-color" userConfig.c.background
-            , Attr.style "color" userConfig.c.text
+            [ Attr.style "background-color" c.background
+            , Attr.style "color" c.text
             , Attr.style "min-height" "100vh"
             , Attr.style "font-family" "system-ui, -apple-system, sans-serif"
             ]
@@ -124,9 +118,9 @@ view model =
 viewHeader : UserConfig -> FrontendModel -> Html FrontendMsg
 viewHeader userConfig model =
     div
-        [ Attr.style "background-color" userConfig.c.secondaryBackground
+        [ Attr.style "background-color" c.secondaryBackground
         , Attr.style "padding" "1rem"
-        , Attr.style "border-bottom" ("1px solid " ++ userConfig.c.border)
+        , Attr.style "border-bottom" ("1px solid " ++ c.border)
         ]
         [ div
             [ Attr.style "max-width" "1200px"
@@ -135,7 +129,7 @@ viewHeader userConfig model =
             , Attr.style "justify-content" "space-between"
             , Attr.style "align-items" "center"
             ]
-            [ h1 [ Attr.style "margin" "0" ] [ text userConfig.t.appTitle ]
+            [ h1 [ Attr.style "margin" "0" ] [ text t.appTitle ]
             , div [ Attr.style "display" "flex", Attr.style "gap" "1rem" ]
                 [ viewLanguageSelector userConfig model.localStorage.language
                 , viewThemeSelector userConfig model.localStorage.userPreference
@@ -155,20 +149,20 @@ viewLanguageSelector userConfig currentLanguage =
             , Attr.style "cursor" "pointer"
             , Attr.style "background-color"
                 (if currentLanguage == EN then
-                    userConfig.c.primary
+                    c.primary
 
                  else
-                    userConfig.c.secondaryBackground
+                    c.secondaryBackground
                 )
             , Attr.style "color"
                 (if currentLanguage == EN then
                     "#fff"
 
                  else
-                    userConfig.c.text
+                    c.text
                 )
             ]
-            [ text userConfig.t.english ]
+            [ text t.english ]
         , button
             [ onClick (ChangeLanguage FR)
             , Attr.style "padding" "0.5rem 1rem"
@@ -177,20 +171,20 @@ viewLanguageSelector userConfig currentLanguage =
             , Attr.style "cursor" "pointer"
             , Attr.style "background-color"
                 (if currentLanguage == FR then
-                    userConfig.c.primary
+                    c.primary
 
                  else
-                    userConfig.c.secondaryBackground
+                    c.secondaryBackground
                 )
             , Attr.style "color"
                 (if currentLanguage == FR then
                     "#fff"
 
                  else
-                    userConfig.c.text
+                    c.text
                 )
             ]
-            [ text userConfig.t.french ]
+            [ text t.french ]
         ]
 
 
@@ -214,21 +208,21 @@ viewThemeButton userConfig currentPreference targetPreference icon =
         , Attr.style "font-size" "1.2rem"
         , Attr.style "background-color"
             (if currentPreference == targetPreference then
-                userConfig.c.primary
+                c.primary
 
              else
-                userConfig.c.secondaryBackground
+                c.secondaryBackground
             )
         , Attr.title
             (case targetPreference of
                 LightMode ->
-                    userConfig.t.lightTheme
+                    t.lightTheme
 
                 DarkMode ->
-                    userConfig.t.darkTheme
+                    t.darkTheme
 
                 SystemMode ->
-                    userConfig.t.systemTheme
+                    t.systemTheme
             )
         ]
         [ text icon ]
@@ -254,8 +248,8 @@ viewContent userConfig model =
             , Attr.style "margin-bottom" "2rem"
             ]
             []
-        , h2 [] [ text userConfig.t.welcome ]
-        , p [ Attr.style "color" userConfig.c.textSecondary ]
+        , h2 [] [ text t.welcome ]
+        , p [ Attr.style "color" c.textSecondary ]
             [ text model.message ]
         , viewPreferences userConfig model
         ]
@@ -266,35 +260,35 @@ viewPreferences userConfig model =
     div
         [ Attr.style "margin-top" "3rem"
         , Attr.style "padding" "2rem"
-        , Attr.style "background-color" userConfig.c.cardBackground
+        , Attr.style "background-color" c.cardBackground
         , Attr.style "border-radius" "8px"
         , Attr.style "box-shadow" "0 2px 4px rgba(0,0,0,0.1)"
         ]
-        [ h3 [] [ text userConfig.t.preferences ]
+        [ h3 [] [ text t.preferences ]
         , div [ Attr.style "margin-top" "1rem" ]
             [ p []
-                [ strong [] [ text (userConfig.t.language ++ ": ") ]
+                [ strong [] [ text (t.language ++ ": ") ]
                 , text
                     (case model.localStorage.language of
                         EN ->
-                            userConfig.t.english
+                            t.english
 
                         FR ->
-                            userConfig.t.french
+                            t.french
                     )
                 ]
             , p []
-                [ strong [] [ text (userConfig.t.theme ++ ": ") ]
+                [ strong [] [ text (t.theme ++ ": ") ]
                 , text
                     (case model.localStorage.userPreference of
                         LightMode ->
-                            userConfig.t.lightTheme
+                            t.lightTheme
 
                         DarkMode ->
-                            userConfig.t.darkTheme
+                            t.darkTheme
 
                         SystemMode ->
-                            userConfig.t.systemTheme
+                            t.systemTheme
                     )
                 ]
             ]

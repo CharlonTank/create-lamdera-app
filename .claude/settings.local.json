@@ -41,7 +41,9 @@
       "Bash(bun add:*)",
       "Bash(npm install)",
       "Bash(npm config get:*)",
-      "Bash(npm config delete:*)"
+      "Bash(npm config delete:*)",
+      "Bash(./test-userconfig-fix.sh:*)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

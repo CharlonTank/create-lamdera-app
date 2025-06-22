@@ -16,12 +16,6 @@ import Types exposing (..)
 import Url
 
 
-type alias UserConfig =
-    { t : Translation
-    , c : Theme
-    }
-
-
 app =
     Effect.Lamdera.frontend
         Lamdera.sendToBackend
@@ -130,14 +124,14 @@ subscriptions model =
 view : FrontendModel -> Browser.Document FrontendMsg
 view model =
     let
-        userConfig =
+        ({ c, t } as userConfig) =
             getUserConfig model.localStorage
     in
-    { title = userConfig.t.appTitle
+    { title = t.appTitle
     , body =
         [ div
-            [ Attr.style "background-color" userConfig.c.background
-            , Attr.style "color" userConfig.c.text
+            [ Attr.style "background-color" c.background
+            , Attr.style "color" c.text
             , Attr.style "min-height" "100vh"
             , Attr.style "font-family" "system-ui, -apple-system, sans-serif"
             ]
@@ -151,9 +145,9 @@ view model =
 viewHeader : UserConfig -> FrontendModel -> Html FrontendMsg
 viewHeader userConfig model =
     div
-        [ Attr.style "background-color" userConfig.c.secondaryBackground
+        [ Attr.style "background-color" c.secondaryBackground
         , Attr.style "padding" "1rem"
-        , Attr.style "border-bottom" ("1px solid " ++ userConfig.c.border)
+        , Attr.style "border-bottom" ("1px solid " ++ c.border)
         ]
         [ div
             [ Attr.style "max-width" "1200px"
@@ -162,7 +156,7 @@ viewHeader userConfig model =
             , Attr.style "justify-content" "space-between"
             , Attr.style "align-items" "center"
             ]
-            [ h1 [ Attr.style "margin" "0" ] [ text userConfig.t.appTitle ]
+            [ h1 [ Attr.style "margin" "0" ] [ text t.appTitle ]
             , div [ Attr.style "display" "flex", Attr.style "gap" "1rem" ]
                 [ viewLanguageSelector userConfig model.localStorage.language
                 , viewThemeSelector userConfig model.localStorage.userPreference
@@ -182,20 +176,20 @@ viewLanguageSelector userConfig currentLanguage =
             , Attr.style "cursor" "pointer"
             , Attr.style "background-color"
                 (if currentLanguage == EN then
-                    userConfig.c.primary
+                    c.primary
 
                  else
-                    userConfig.c.secondaryBackground
+                    c.secondaryBackground
                 )
             , Attr.style "color"
                 (if currentLanguage == EN then
                     "#fff"
 
                  else
-                    userConfig.c.text
+                    c.text
                 )
             ]
-            [ text userConfig.t.english ]
+            [ text t.english ]
         , button
             [ onClick (ChangeLanguage FR)
             , Attr.style "padding" "0.5rem 1rem"
@@ -204,20 +198,20 @@ viewLanguageSelector userConfig currentLanguage =
             , Attr.style "cursor" "pointer"
             , Attr.style "background-color"
                 (if currentLanguage == FR then
-                    userConfig.c.primary
+                    c.primary
 
                  else
-                    userConfig.c.secondaryBackground
+                    c.secondaryBackground
                 )
             , Attr.style "color"
                 (if currentLanguage == FR then
                     "#fff"
 
                  else
-                    userConfig.c.text
+                    c.text
                 )
             ]
-            [ text userConfig.t.french ]
+            [ text t.french ]
         ]
 
 
@@ -241,21 +235,21 @@ viewThemeButton userConfig currentPreference targetPreference icon =
         , Attr.style "font-size" "1.2rem"
         , Attr.style "background-color"
             (if currentPreference == targetPreference then
-                userConfig.c.primary
+                c.primary
 
              else
-                userConfig.c.secondaryBackground
+                c.secondaryBackground
             )
         , Attr.title
             (case targetPreference of
                 LightMode ->
-                    userConfig.t.lightTheme
+                    t.lightTheme
 
                 DarkMode ->
-                    userConfig.t.darkTheme
+                    t.darkTheme
 
                 SystemMode ->
-                    userConfig.t.systemTheme
+                    t.systemTheme
             )
         ]
         [ text icon ]
@@ -269,13 +263,13 @@ viewContent userConfig model =
         , Attr.style "padding" "20px"
         , Attr.style "text-align" "center"
         ]
-        [ h1 [] [ text ("🔄 " ++ userConfig.t.counter) ]
-        , p [ Attr.style "color" userConfig.c.textSecondary, Attr.style "margin-bottom" "30px" ] 
-            [ text userConfig.t.welcome ]
+        [ h1 [] [ text ("🔄 " ++ t.counter) ]
+        , p [ Attr.style "color" c.textSecondary, Attr.style "margin-bottom" "30px" ] 
+            [ text t.welcome ]
         
         -- Counter Display
         , div 
-            [ Attr.style "background" userConfig.c.cardBackground
+            [ Attr.style "background" c.cardBackground
             , Attr.style "border-radius" "12px"
             , Attr.style "padding" "40px"
             , Attr.style "margin-bottom" "30px"
@@ -284,7 +278,7 @@ viewContent userConfig model =
             [ div 
                 [ Attr.style "font-size" "72px"
                 , Attr.style "font-weight" "bold"
-                , Attr.style "color" userConfig.c.text
+                , Attr.style "color" c.text
                 , Attr.style "margin-bottom" "20px"
                 , Attr.id "counter-value"
                 ]
@@ -298,12 +292,12 @@ viewContent userConfig model =
                     , Attr.style "padding" "10px 30px"
                     , Attr.style "border" "none"
                     , Attr.style "border-radius" "8px"
-                    , Attr.style "background" userConfig.c.danger
+                    , Attr.style "background" c.danger
                     , Attr.style "color" "white"
                     , Attr.style "cursor" "pointer"
                     , Attr.id "decrement-button"
                     ]
-                    [ text userConfig.t.decrement ]
+                    [ text t.decrement ]
                 
                 , button 
                     [ onClick Increment
@@ -311,24 +305,24 @@ viewContent userConfig model =
                     , Attr.style "padding" "10px 30px"
                     , Attr.style "border" "none"
                     , Attr.style "border-radius" "8px"
-                    , Attr.style "background" userConfig.c.success
+                    , Attr.style "background" c.success
                     , Attr.style "color" "white"
                     , Attr.style "cursor" "pointer"
                     , Attr.id "increment-button"
                     ]
-                    [ text userConfig.t.increment ]
+                    [ text t.increment ]
                 ]
             ]
         
         -- Last Update Info
-        , div [ Attr.style "color" userConfig.c.textSecondary, Attr.style "font-size" "14px" ]
+        , div [ Attr.style "color" c.textSecondary, Attr.style "font-size" "14px" ]
             [ text <|
                 if model.clientId == "waiting..." then
-                    userConfig.t.waitingForUpdate
+                    t.waitingForUpdate
                 else if model.clientId == "" then
-                    userConfig.t.counterInitialized
+                    t.counterInitialized
                 else
-                    userConfig.t.lastUpdatedBy ++ ": " ++ model.clientId
+                    t.lastUpdatedBy ++ ": " ++ model.clientId
             ]
         ]
 

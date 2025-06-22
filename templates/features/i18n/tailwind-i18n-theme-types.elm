@@ -4,13 +4,13 @@ import Browser exposing (UrlRequest)
 import Browser.Navigation exposing (Key)
 import I18n exposing (Language, Translation)
 import LocalStorage exposing (LocalStorage)
-import Theme exposing (Theme, UserPreference)
+import Theme exposing (UserPreference)
 import Url exposing (Url)
 
 
 type alias UserConfig =
     { t : Translation
-    , c : Theme
+    , isDark : Bool
     }
 
 

@@ -9,7 +9,6 @@ yarn-debug.log*
 yarn-error.log*
 
 # Tailwind
-/public/styles.css
 
 # OS
 .DS_Store

@@ -16,12 +16,6 @@ import Types exposing (..)
 import Url
 
 
-type alias UserConfig =
-    { t : Translation
-    , isDark : Bool
-    }
-
-
 app =
     Effect.Lamdera.frontend
         Lamdera.sendToBackend
@@ -130,13 +124,13 @@ subscriptions model =
 view : FrontendModel -> Browser.Document FrontendMsg
 view model =
     let
-        userConfig =
+        ({ t, isDark } as userConfig) =
             getUserConfig model.localStorage
         
         darkClass =
-            if userConfig.isDark then "dark" else ""
+            if isDark then "dark" else ""
     in
-    { title = userConfig.t.appTitle
+    { title = t.appTitle
     , body =
         [ div [ class darkClass ]
             [ div [ class "min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 dark:from-purple-900 dark:via-pink-900 dark:to-red-900 transition-colors duration-300" ]
@@ -147,9 +141,9 @@ view model =
                     -- Main content
                     , div [ class "text-center mb-12 mt-8" ]
                         [ h1 [ class "text-5xl font-bold text-white mb-4 drop-shadow-lg" ] 
-                            [ text ("🔄 " ++ userConfig.t.counter) ]
+                            [ text ("🔄 " ++ t.counter) ]
                         , p [ class "text-xl text-white/90" ] 
-                            [ text userConfig.t.welcome ]
+                            [ text t.welcome ]
                         ]
                     
                     -- Counter Card
@@ -168,40 +162,40 @@ view model =
                                     , class "px-8 py-4 bg-red-500 dark:bg-red-600 text-white text-2xl font-semibold rounded-lg shadow-md hover:bg-red-600 dark:hover:bg-red-700 transform hover:scale-105 transition-all duration-200"
                                     , Attr.id "decrement-button"
                                     ]
-                                    [ text userConfig.t.decrement ]
+                                    [ text t.decrement ]
                                 , button 
                                     [ onClick Increment
                                     , class "px-8 py-4 bg-green-500 dark:bg-green-600 text-white text-2xl font-semibold rounded-lg shadow-md hover:bg-green-600 dark:hover:bg-green-700 transform hover:scale-105 transition-all duration-200"
                                     , Attr.id "increment-button"
                                     ]
-                                    [ text userConfig.t.increment ]
+                                    [ text t.increment ]
                                 ]
                             
                             -- Last Update Info
                             , div [ class "text-center text-gray-600 dark:text-gray-400 text-sm" ]
                                 [ text <|
                                     if model.clientId == "waiting..." then
-                                        userConfig.t.waitingForUpdate
+                                        t.waitingForUpdate
                                     else if model.clientId == "" then
-                                        userConfig.t.counterInitialized
+                                        t.counterInitialized
                                     else
-                                        userConfig.t.lastUpdatedBy ++ ": " ++ model.clientId
+                                        t.lastUpdatedBy ++ ": " ++ model.clientId
                                 ]
                             ]
                         ]
                     
                     -- Feature Cards
                     , div [ class "grid md:grid-cols-3 gap-6 mb-12" ]
-                        [ viewCard "🌍" userConfig.t.multiLanguage userConfig.t.multiLanguageDesc "blue"
-                        , viewCard "🎨" userConfig.t.tailwindIntegration userConfig.t.tailwindIntegrationDesc "purple"
-                        , viewCard "🧪" userConfig.t.testSupport userConfig.t.testSupportDesc "green"
+                        [ viewCard "🌍" t.multiLanguage t.multiLanguageDesc "blue"
+                        , viewCard "🎨" t.tailwindIntegration t.tailwindIntegrationDesc "purple"
+                        , viewCard "🧪" t.testSupport t.testSupportDesc "green"
                         ]
                     
                     -- Footer
                     , div [ class "mt-16 text-center text-white/80" ]
-                        [ p [ class "mb-2" ] [ text userConfig.t.editMessage ]
+                        [ p [ class "mb-2" ] [ text t.editMessage ]
                         , p [ class "text-sm" ] 
-                            [ text userConfig.t.tailwindMessage ]
+                            [ text t.tailwindMessage ]
                         ]
                     ]
                 ]
@@ -214,7 +208,7 @@ viewHeader : UserConfig -> FrontendModel -> Html FrontendMsg
 viewHeader userConfig model =
     div [ class "bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-lg p-4" ]
         [ div [ class "flex flex-wrap justify-between items-center gap-4" ]
-            [ h1 [ class "text-2xl font-bold text-white" ] [ text userConfig.t.appTitle ]
+            [ h1 [ class "text-2xl font-bold text-white" ] [ text t.appTitle ]
             , div [ class "flex flex-wrap items-center gap-4" ]
                 [ viewLanguageSelector userConfig model.localStorage.language
                 , viewThemeSelector userConfig model.localStorage.userPreference
@@ -244,9 +238,9 @@ viewLanguageButton userConfig currentLanguage targetLanguage flag =
         ]
         [ text (flag ++ " " ++ 
             if targetLanguage == EN then 
-                userConfig.t.english 
+                t.english 
             else 
-                userConfig.t.french)
+                t.french)
         ]
 
 
@@ -272,13 +266,13 @@ viewThemeButton userConfig currentPreference targetPreference icon =
         , Attr.title
             (case targetPreference of
                 LightMode ->
-                    userConfig.t.lightTheme
+                    t.lightTheme
 
                 DarkMode ->
-                    userConfig.t.darkTheme
+                    t.darkTheme
 
                 SystemMode ->
-                    userConfig.t.systemTheme
+                    t.systemTheme
             )
         ]
         [ text icon ]
