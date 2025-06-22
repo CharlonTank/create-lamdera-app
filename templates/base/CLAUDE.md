@@ -43,10 +43,10 @@ elm-pkg-js/          # JavaScript interop files
 
 ### SEO and Meta Tags
 For better social media sharing and SEO:
-- Create a `public/index.html` file with meta tags
+- Edit the `head.html` file in your project root
 - Include Open Graph tags for Facebook/LinkedIn
 - Include Twitter Card tags for Twitter
-- Lamdera will use this as the base HTML template
+- Lamdera will inject this content into the `<head>` of your application
 
 ### Package Management
 ```bash

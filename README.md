@@ -98,6 +98,7 @@ my-app/
 ### Tailwind CSS Integration
 
 When you add Tailwind CSS (`--tailwind`), you get:
+
 - Pre-configured `tailwind.config.js`
 - NPM scripts for development and production builds
 - Beautiful starter template with gradient design
@@ -106,6 +107,7 @@ When you add Tailwind CSS (`--tailwind`), you get:
 ### Internationalization (i18n)
 
 The `--i18n` flag adds:
+
 - Language switcher (English/French by default)
 - Dark/Light/System theme modes
 - LocalStorage persistence for user preferences
@@ -115,6 +117,7 @@ The `--i18n` flag adds:
 ### Testing with lamdera-program-test
 
 The `--test` flag sets up:
+
 - Effect pattern for testable Lamdera code
 - Example test suite
 - elm-test-rs configuration
@@ -123,6 +126,7 @@ The `--test` flag sets up:
 ### Development Tools
 
 Every project includes:
+
 - `lamdera-dev-watch.sh` - Auto-recompiling development server
 - `toggle-debugger.py` - Quick debugger toggling
 - Hot reload support with elm-hot
@@ -130,22 +134,26 @@ Every project includes:
 ## Examples
 
 ### Basic Lamdera app
+
 ```bash
 create-lamdera-app --name my-app
 ```
 
 ### Full-featured app
+
 ```bash
 create-lamdera-app --name my-app --cursor yes --tailwind --test --i18n
 ```
 
 ### Using Bun for faster installs
+
 ```bash
 # Install Bun first: https://bun.sh
 create-lamdera-app --name my-app --tailwind --bun
 ```
 
 ### Add Tailwind to existing project
+
 ```bash
 cd my-existing-app
 create-lamdera-app --init --tailwind
@@ -154,6 +162,7 @@ create-lamdera-app --init --tailwind
 ## Development
 
 ### Running Tests
+
 ```bash
 npm test
 npm run test:watch
@@ -161,6 +170,7 @@ npm run test:coverage
 ```
 
 ### Test All Feature Combinations
+
 ```bash
 ./test-all-combinations.sh
 ```
@@ -177,6 +187,12 @@ This creates 8 test applications with essential feature combinations and verifie
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Roadmap
+
+- [ ] Add authentication support
+- [ ] Add elm-review integration
+- [ ] Add Capacitor support for mobile app development
 
 ## License
 
