@@ -1,6 +1,7 @@
 {
   "name": "test-all-flags",
   "version": "1.0.0",
+  "private": true,
   "main": "index.js",
   "directories": {
     "test": "tests"
