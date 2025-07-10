@@ -1,0 +1,24 @@
+{
+  "name": "test-all-flags",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx concurrently -k -s first \"lamdera live --port=${PORT:-8000}\" \"npx tailwindcss -i ./src/styles.css -o ./public/styles.css --watch\"",
+    "start:hot": "npx concurrently -k -s first \"PORT=${PORT:-8000} ./lamdera-dev-watch.sh\" \"npx tailwindcss -i ./src/styles.css -o ./public/styles.css --watch\"",
+    "start:ci": "(lamdera live --port=${PORT:-8000} &) && npx tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "tailwindcss": "^3.4.17"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

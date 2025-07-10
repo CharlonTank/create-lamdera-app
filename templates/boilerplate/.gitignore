@@ -1,0 +1,27 @@
+# Elm
+elm-stuff/
+elm.js
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tailwind
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Pre commit hook
+tmp
+
+# Temporary files (Claude auto-fix logs)
+tmp/

@@ -1,0 +1,28 @@
+{
+    "modelDefinitions": "BackendModel and FrontendModel should ALWAYS BE DEFINED IN Types.elm",
+    "userActions": "An action by a user/player will always be a FrontendMsg",
+    "backendCommunication": "For backend communication, use Lamdera.sendToBackend with a ToBackend variant",
+    "compilation": "After making modifications run `lamdera make src/Frontend.elm src/Backend.elm` to see compilation errors",
+    "testing": "Use elm-test-rs to run tests",
+    "migrations": "Run lamdera check first, then complete the generated migrations",
+    "dependencies": "Use 'yes | lamdera install' instead of directly modifying elm.json",
+    "errorFixing": {
+        "general": "Look around before trying to fix compilation errors",
+        "anonymousFunctions": "Avoid anonymous functions as they often indicate misunderstanding of compilation errors",
+        "oneAtATime": "Fix ONE compilation error at a time, then recompile"
+    },
+    "design": "Make it responsive by default",
+    "generalConstraint": [
+        "DO NOT ADD/MODIFY SOMETHING NOT EXPLICITLY REQUESTED",
+        "NEVER DO THIS: type alias Model = FrontendModel"
+    ],
+    "images": {
+        "storage": "Store them DIRECTLY UNDER public directory",
+        "help": "For more options and details use 'unsplash-dl --help'",
+        "examples": {
+            "mountains": "unsplash-dl download \"mountains\" -n 3 -s full",
+            "cats": "unsplash-dl download \"cats\" -n 10 -o ./cat-photos",
+            "nature": "unsplash-dl download \"nature\""
+        }
+    }
+}

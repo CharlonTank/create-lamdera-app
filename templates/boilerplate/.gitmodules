@@ -1,0 +1,3 @@
+[submodule "elm-auth"]
+	path = elm-auth
+	url = https://github.com/charlontank/auth.git

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(rg:*)",
+      "Bash(elm-test-rs:*)",
+      "Bash(npm test)",
+      "Bash(lamdera make:*)",
+      "Bash(grep:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git remote:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:docs.github.com)",
+      "Bash(lsof:*)",
+      "Bash(lamdera:*)",
+      "Bash(npx elm-review:*)",
+      "Bash(find:*)",
+      "Bash(echo $?)",
+      "Bash(ls:*)",
+      "Bash(elm-review:*)"
+    ],
+    "deny": []
+  }
+}
