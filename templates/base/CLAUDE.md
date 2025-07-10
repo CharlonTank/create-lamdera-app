@@ -75,6 +75,7 @@ The project uses `lamdera-program-test` for end-to-end testing:
 - Simulates full client-server interactions
 - Can test multiple connected clients
 - Verifies both frontend views and backend state
+- If you need more info on how Effect or lamdera-program-test works, you can look there ~/.elm/0.19.1/packages/lamdera/program-test/3.0.0
 
 ### Environment Variables
 - Development: Defined in `.env` file

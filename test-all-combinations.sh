@@ -31,24 +31,10 @@ echo
 echo -e "${YELLOW}Cleaning up existing test directories...${NC}"
 rm -rf app-*
 
-# Simplified test combinations
-# Note: cursor flag only adds .cursorrules and openEditor.sh, doesn't affect functionality
+# Test apps with different GitHub settings
 declare -a apps=(
-    # Basic tests
-    "app-basic:"
-    
-    # Single feature tests
-    "app-tailwind:--tailwind"
-    "app-test:--test"
-    "app-i18n:--i18n"
-    
-    # Two feature combinations
-    "app-tailwind-test:--tailwind --test"
-    "app-tailwind-i18n:--tailwind --i18n"
-    "app-test-i18n:--test --i18n"
-    
-    # Three features
-    "app-all-features:--tailwind --test --i18n"
+    "app-no-github:--no-github"
+    "app-with-github:--github yes"
 )
 
 # Total number of combinations
@@ -73,28 +59,23 @@ for app_config in "${apps[@]}"; do
         cmd="$cmd $flags"
     fi
     
-    # Add --no-github to avoid any GitHub operations
-    cmd="$cmd --no-github"
-    
     # Execute the command
     echo -e "${BLUE}Running: $cmd${NC}"
     
-    # For apps with Tailwind, handle package manager
-    if [[ "$flags" == *"--tailwind"* ]]; then
-        # Force use Bun if requested via FORCE_BUN
-        if [ "${FORCE_BUN:-false}" = "true" ]; then
-            echo -e "${BLUE}Note: Forcing Bun usage (will install if needed)${NC}"
-            cmd="$cmd --bun"
-        # Check if we should use Bun
-        elif [ "${USE_BUN:-true}" = "true" ] && command -v bun >/dev/null 2>&1; then
-            echo -e "${BLUE}Note: Using Bun for faster installs${NC}"
-            cmd="$cmd --bun"
-        elif [ "${SKIP_NPM_INSTALL:-false}" = "true" ]; then
-            echo -e "${YELLOW}Note: Skipping npm install for Tailwind (use SKIP_NPM_INSTALL=false to enable)${NC}"
-            cmd="$cmd --skip-install"
-        else
-            echo -e "${YELLOW}Note: This app includes Tailwind CSS, npm install may take a moment...${NC}"
-        fi
+    # All apps now include Tailwind, handle package manager
+    # Force use Bun if requested via FORCE_BUN
+    if [ "${FORCE_BUN:-false}" = "true" ]; then
+        echo -e "${BLUE}Note: Forcing Bun usage (will install if needed)${NC}"
+        cmd="$cmd --bun"
+    # Check if we should use Bun
+    elif [ "${USE_BUN:-true}" = "true" ] && command -v bun >/dev/null 2>&1; then
+        echo -e "${BLUE}Note: Using Bun for faster installs${NC}"
+        cmd="$cmd --bun"
+    elif [ "${SKIP_NPM_INSTALL:-false}" = "true" ]; then
+        echo -e "${YELLOW}Note: Skipping npm install (use SKIP_NPM_INSTALL=false to enable)${NC}"
+        cmd="$cmd --skip-install"
+    else
+        echo -e "${YELLOW}Note: npm install may take a moment...${NC}"
     fi
     
     eval "$cmd"
@@ -117,7 +98,6 @@ for app_config in "${apps[@]}"; do
     
     cd "$app_name"
     
-    
     # Test Elm compilation
     if lamdera make src/Frontend.elm src/Backend.elm > /dev/null 2>&1; then
         echo -e "  ${GREEN}✓ Elm compilation successful${NC}"
@@ -125,22 +105,18 @@ for app_config in "${apps[@]}"; do
         echo -e "  ${YELLOW}✗ Elm compilation failed${NC}"
     fi
     
-    # Test if tests exist and run them
-    if [ -f "tests/Tests.elm" ]; then
-        if elm-test-rs --compiler $(which lamdera) > /dev/null 2>&1; then
-            echo -e "  ${GREEN}✓ Tests pass${NC}"
-        else
-            echo -e "  ${YELLOW}✗ Tests failed${NC}"
-        fi
+    # Test tests (always present now)
+    if elm-test-rs --compiler $(which lamdera) > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓ Tests pass${NC}"
+    else
+        echo -e "  ${YELLOW}✗ Tests failed${NC}"
     fi
     
-    # Check if Tailwind is set up
-    if [ -f "tailwind.config.js" ]; then
-        if npx tailwindcss -i ./src/styles.css -o ./public/styles.css > /dev/null 2>&1; then
-            echo -e "  ${GREEN}✓ Tailwind CSS compilation successful${NC}"
-        else
-            echo -e "  ${YELLOW}✗ Tailwind CSS compilation failed${NC}"
-        fi
+    # Check Tailwind (always present now)
+    if npx tailwindcss -i ./src/styles.css -o ./public/styles.css > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓ Tailwind CSS compilation successful${NC}"
+    else
+        echo -e "  ${YELLOW}✗ Tailwind CSS compilation failed${NC}"
     fi
     
     cd ..
@@ -148,10 +124,11 @@ for app_config in "${apps[@]}"; do
 done
 
 echo -e "${GREEN}All tests completed!${NC}"
-echo -e "${BLUE}Functional test combinations:${NC}"
-echo -e "  - Basic (no features)"
-echo -e "  - Single features: Tailwind, Test, i18n"
-echo -e "  - All pairs of features"
-echo -e "  - All features combined"
-echo -e "\n${YELLOW}Note: Cursor flag only adds .cursorrules and openEditor.sh${NC}"
-echo -e "${YELLOW}      It doesn't affect other features, so we test it once.${NC}"
+echo -e "${BLUE}All generated apps include:${NC}"
+echo -e "  - Tailwind CSS for styling"
+echo -e "  - lamdera-program-test for testing"  
+echo -e "  - Internationalization (i18n) and dark mode"
+echo -e "  - Authentication (Google, GitHub, Email)"
+echo -e "  - Cursor editor support (.cursorrules and openEditor.sh)"
+echo -e "  - Pre-commit hooks (.githooks/pre-commit)"
+echo -e "\n${YELLOW}The only difference is GitHub repository creation${NC}"

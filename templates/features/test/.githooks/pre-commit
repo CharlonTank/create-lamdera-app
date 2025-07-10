@@ -1,26 +1,46 @@
 #!/bin/bash
 
-# Pre-commit hook to check compilation and run tests
+# Pre-commit hook for Lamdera projects with lamdera-program-test
 
 echo "🔍 Running pre-commit checks..."
 
-# Check if files compile
+# 1. Run elm-format
+echo "🎨 Running elm-format..."
+if ! elm-format --yes src/ tests/; then
+    echo "❌ elm-format failed! Please install elm-format:"
+    echo "   npm install -g elm-format"
+    exit 1
+fi
+
+echo "✅ elm-format completed!"
+
+# 2. Check compilation (including tests)
 echo "📦 Checking compilation..."
-if ! lamdera make src/Backend.elm src/Frontend.elm; then
+if ! lamdera make src/Backend.elm src/Frontend.elm tests/Tests.elm; then
     echo "❌ Compilation failed! Please fix errors before committing."
     exit 1
 fi
 
 echo "✅ Compilation successful!"
 
-# Run tests
+# 3. Run tests
 echo "🧪 Running tests..."
-if ! elm-test-rs --compiler /opt/homebrew/bin/lamdera tests/Tests.elm; then
+if ! elm-test-rs --compiler $(which lamdera); then
     echo "❌ Tests failed! Please fix failing tests before committing."
     exit 1
 fi
 
 echo "✅ All tests passed!"
+
+# 4. Run elm-review with auto-fix
+echo "🔎 Running elm-review..."
+if ! elm-review --fix-all; then
+    echo "❌ elm-review found issues that couldn't be auto-fixed!"
+    echo "   Please run 'elm-review' to see the issues."
+    exit 1
+fi
+
+echo "✅ elm-review passed!"
 echo "🎉 Pre-commit checks passed. Proceeding with commit..."
 
 exit 0

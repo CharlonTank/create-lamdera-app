@@ -32,10 +32,10 @@ describe('create-lamdera-app CLI', () => {
       expect(output).toContain('Options:');
       expect(output).toContain('Examples:');
       expect(output).toContain('--name');
-      expect(output).toContain('--cursor');
       expect(output).toContain('--github');
-      expect(output).toContain('--tailwind');
-      expect(output).toContain('--test');
+      expect(output).toContain('Included Features:');
+      expect(output).toContain('Tailwind CSS');
+      expect(output).toContain('Authentication');
     });
 
     test('should display help with -h flag', () => {
@@ -53,15 +53,26 @@ describe('create-lamdera-app CLI', () => {
       expect(helpOutput).toContain('required for new projects in non-interactive mode');
     });
 
-    test('should create project with all flags', () => {
+    test('should create project with all features included by default', () => {
       const projectName = 'test-project';
       
       // Mock lamdera command
       fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
       fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
       
+      // Mock npm and npx commands - npm init needs to create package.json
+      const npmScript = `#!/bin/bash
+if [ "$1" = "init" ]; then
+  echo '{"name":"test","version":"1.0.0","scripts":{}}' > package.json
+fi
+exit 0`;
+      fs.writeFileSync(path.join(tempDir, 'npm'), npmScript);
+      fs.chmodSync(path.join(tempDir, 'npm'), '755');
+      fs.writeFileSync(path.join(tempDir, 'npx'), '#!/bin/bash\nexit 0');
+      fs.chmodSync(path.join(tempDir, 'npx'), '755');
+      
       const output = execSync(
-        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --no-cursor --no-github`,
+        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --no-github --skip-install`,
         { encoding: 'utf8' }
       );
       
@@ -81,128 +92,22 @@ describe('create-lamdera-app CLI', () => {
       expect(fs.existsSync(path.join(projectPath, 'lamdera-dev-watch.sh'))).toBe(true);
       expect(fs.existsSync(path.join(projectPath, 'toggle-debugger.py'))).toBe(true);
       
-      // Should not have cursor files
-      expect(fs.existsSync(path.join(projectPath, '.cursorrules'))).toBe(false);
-      expect(fs.existsSync(path.join(projectPath, 'openEditor.sh'))).toBe(false);
-    });
-
-    test('should create project with cursor support', () => {
-      const projectName = 'test-cursor-project';
-      
-      // Mock lamdera command
-      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
-      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
-      
-      execSync(
-        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --cursor yes --no-github`,
-        { encoding: 'utf8' }
-      );
-      
-      const projectPath = path.join(tempDir, projectName);
+      // Should have all features by default
       expect(fs.existsSync(path.join(projectPath, '.cursorrules'))).toBe(true);
       expect(fs.existsSync(path.join(projectPath, 'openEditor.sh'))).toBe(true);
-    });
-
-    test('should create project with Tailwind CSS', () => {
-      const projectName = 'test-tailwind-project';
-      
-      // Mock lamdera command
-      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
-      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
-      
-      // Mock npm and npx commands - npm init needs to create package.json
-      const npmScript = `#!/bin/bash
-if [ "$1" = "init" ]; then
-  echo '{"name":"test","version":"1.0.0","scripts":{}}' > package.json
-fi
-exit 0`;
-      fs.writeFileSync(path.join(tempDir, 'npm'), npmScript);
-      fs.chmodSync(path.join(tempDir, 'npm'), '755');
-      fs.writeFileSync(path.join(tempDir, 'npx'), '#!/bin/bash\nexit 0');
-      fs.chmodSync(path.join(tempDir, 'npx'), '755');
-      
-      const output = execSync(
-        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --tailwind yes --no-cursor --no-github`,
-        { encoding: 'utf8' }
-      );
-      
-      expect(output).toContain('Setting up Tailwind CSS');
-      expect(output).toContain('Tailwind CSS setup complete!');
-      
-      const projectPath = path.join(tempDir, projectName);
       expect(fs.existsSync(path.join(projectPath, 'src/styles.css'))).toBe(true);
       expect(fs.existsSync(path.join(projectPath, 'tailwind.config.js'))).toBe(true);
-      expect(fs.existsSync(path.join(projectPath, 'package.json'))).toBe(true);
-      
-      // Check package.json has the start script
-      const packageJson = JSON.parse(fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8'));
-      expect(packageJson.scripts.start).toContain('tailwindcss');
+      expect(fs.existsSync(path.join(projectPath, 'tests/Tests.elm'))).toBe(true);
+      expect(fs.existsSync(path.join(projectPath, 'src/I18n.elm'))).toBe(true);
+      expect(fs.existsSync(path.join(projectPath, 'src/Theme.elm'))).toBe(true);
+      expect(fs.existsSync(path.join(projectPath, 'src/Auth.elm'))).toBe(true);
     });
 
-    test('should create project with lamdera-program-test', () => {
-      const projectName = 'test-program-test-project';
-      
-      // Mock lamdera command
-      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
-      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
-      
-      const output = execSync(
-        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --test yes --no-cursor --no-github`,
-        { encoding: 'utf8' }
-      );
-      
-      expect(output).toContain('Setting up lamdera-program-test');
-      expect(output).toContain('lamdera-program-test setup complete!');
-      
-      const projectPath = path.join(tempDir, projectName);
-      expect(fs.existsSync(path.join(projectPath, 'tests/Tests.elm'))).toBe(true);
-      expect(fs.existsSync(path.join(projectPath, 'elm-test-rs.json'))).toBe(true);
-      
-      // Check that test-specific Types.elm is used
-      const typesContent = fs.readFileSync(path.join(projectPath, 'src/Types.elm'), 'utf8');
-      expect(typesContent).toContain('Effect.Browser.Navigation');
-      expect(typesContent).toContain('CounterNewValue');
-    });
+    // Cursor support is always included, no need for separate test
 
-    test('should create project with both Tailwind and tests', () => {
-      const projectName = 'test-tailwind-and-tests';
-      
-      // Mock commands
-      fs.writeFileSync(path.join(tempDir, 'lamdera'), '#!/bin/bash\necho "1.0.0"');
-      fs.chmodSync(path.join(tempDir, 'lamdera'), '755');
-      
-      const npmScript = `#!/bin/bash
-if [ "$1" = "init" ]; then
-  echo '{"name":"test","version":"1.0.0","scripts":{}}' > package.json
-fi
-exit 0`;
-      fs.writeFileSync(path.join(tempDir, 'npm'), npmScript);
-      fs.chmodSync(path.join(tempDir, 'npm'), '755');
-      fs.writeFileSync(path.join(tempDir, 'npx'), '#!/bin/bash\nexit 0');
-      fs.chmodSync(path.join(tempDir, 'npx'), '755');
-      
-      const output = execSync(
-        `PATH=${tempDir}:$PATH node ${cliPath} --name ${projectName} --tailwind yes --test yes --no-cursor --no-github`,
-        { encoding: 'utf8' }
-      );
-      
-      expect(output).toContain('Setting up lamdera-program-test');
-      expect(output).toContain('Setting up Tailwind CSS');
-      expect(output).toContain('Note: When using lamdera-program-test with Tailwind');
-      
-      const projectPath = path.join(tempDir, projectName);
-      
-      // Should have both test files and tailwind files
-      expect(fs.existsSync(path.join(projectPath, 'tests/Tests.elm'))).toBe(true);
-      expect(fs.existsSync(path.join(projectPath, 'src/styles.css'))).toBe(true);
-      expect(fs.existsSync(path.join(projectPath, 'tailwind.config.js'))).toBe(true);
-      
-      // Frontend should be the test version, not the tailwind version
-      const frontendContent = fs.readFileSync(path.join(projectPath, 'src/Frontend.elm'), 'utf8');
-      expect(frontendContent).toContain('Effect.Lamdera');
-      expect(frontendContent).toContain('CounterNewValue');
-      expect(frontendContent).not.toContain('NoOpToFrontend');
-    });
+    // Tailwind CSS is always included, no need for separate test
+
+    // All features are included by default, no need for separate feature tests
   });
 
   describe('Init mode', () => {

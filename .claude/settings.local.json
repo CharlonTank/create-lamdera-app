@@ -44,7 +44,19 @@
       "Bash(npm config delete:*)",
       "Bash(./test-userconfig-fix.sh:*)",
       "Bash(npm test:*)",
-      "Bash(diff:*)"
+      "Bash(diff:*)",
+      "Bash(git init:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git rm:*)",
+      "Bash(git submodule add:*)",
+      "Bash(git submodule:*)",
+      "Bash(git config:*)",
+      "Bash(elm-review:*)",
+      "Bash(elm-json install:*)",
+      "Bash(gh repo clone:*)",
+      "Bash(npx elm-json:*)",
+      "Bash(elm make:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

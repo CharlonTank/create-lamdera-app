@@ -19,3 +19,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Temporary files (Claude auto-fix logs)
+tmp/

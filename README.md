@@ -1,16 +1,19 @@
 # create-lamdera-app
 
-A modern CLI tool to scaffold [Lamdera](https://lamdera.com) applications with built-in support for Tailwind CSS, internationalization (i18n), dark mode, and testing.
+A modern CLI tool to scaffold [Lamdera](https://lamdera.com) applications with a complete feature set including Tailwind CSS, authentication, internationalization (i18n), dark mode, and testing.
 
 ## Features
 
-- 🚀 **Quick Setup** - Get a working Lamdera app in seconds
+Every generated app includes:
+
+- 🚀 **Quick Setup** - Get a fully-featured Lamdera app in seconds
 - 🎨 **Tailwind CSS** - Beautiful, responsive designs out of the box
+- 🔐 **Authentication** - Google One Tap, GitHub OAuth, and Email authentication
 - 🌍 **i18n Support** - Built-in internationalization (EN/FR) with easy extension
 - 🌓 **Dark Mode** - System-aware dark/light theme switching
 - 🧪 **Testing Ready** - lamdera-program-test integration for reliable tests
 - 📝 **Editor Support** - Cursor editor integration with custom rules
-- 🔧 **Dev Tools** - Hot reload, debugger toggle, and more
+- 🔧 **Dev Tools** - Hot reload, debugger toggle, and pre-commit hooks
 - ⚡ **Bun Support** - Use Bun for 10x faster package installs
 
 ## Installation
@@ -27,12 +30,12 @@ npm install -g @CharlonTank/create-lamdera-app
 create-lamdera-app
 ```
 
-Follow the interactive prompts to configure your project.
+Follow the interactive prompts to set your project name and GitHub preferences.
 
 ### Non-interactive mode
 
 ```bash
-create-lamdera-app --name my-app --tailwind --i18n --test
+create-lamdera-app --name my-app --github yes
 ```
 
 ### Add to existing project
@@ -45,23 +48,14 @@ create-lamdera-app --init
 ## Options
 
 - `--name <project-name>` - Project name (required in non-interactive mode)
-- `--cursor <yes|no>` - Add Cursor editor support
-- `--tailwind` - Add Tailwind CSS
-- `--test` - Add lamdera-program-test for testing
-- `--i18n` - Add internationalization and dark mode
 - `--github <yes|no>` - Create GitHub repository
-- `--public/--private` - Repository visibility (with --github)
+- `--no-github` - Don't create GitHub repository
+- `--public/--private` - Repository visibility (default: private)
 - `--init` - Add features to existing project
 - `--package-manager <npm|bun>` - Choose package manager (default: npm)
 - `--pm <npm|bun>` - Shorthand for --package-manager
 - `--bun` - Use Bun package manager (same as --pm bun)
 - `--skip-install` - Skip package installation
-
-### Shortcuts
-
-- `--no-cursor` - Same as `--cursor no`
-- `--no-github` - Same as `--github no`
-- `--no-test` - Same as `--test no`
 
 ## Project Structure
 
@@ -72,134 +66,112 @@ my-app/
 │   ├── Frontend.elm
 │   ├── Types.elm
 │   ├── Env.elm
-│   └── (optional features)
-│       ├── I18n.elm          # with --i18n
-│       ├── Theme.elm         # with --i18n
-│       ├── LocalStorage.elm  # with --i18n
-│       └── styles.css        # with --tailwind
-├── tests/                    # with --test
-│   └── Tests.elm
+│   ├── I18n.elm          # Internationalization
+│   ├── Theme.elm         # Dark mode support
+│   ├── LocalStorage.elm  # Persistent storage
+│   ├── Auth.elm          # Authentication logic
+│   ├── Login.elm         # Login page
+│   ├── Register.elm      # Registration page
+│   ├── Admin.elm         # Admin dashboard
+│   ├── Password.elm      # Password utilities
+│   ├── Email.elm         # Email utilities
+│   ├── GoogleOneTap.elm  # Google auth setup
+│   ├── DomId.elm         # DOM element IDs
+│   └── styles.css        # Tailwind input file
+├── tests/
+│   └── Tests.elm         # Example tests
 ├── public/
 │   └── sample.svg
 ├── elm.json
-├── lamdera-dev-watch.sh
-├── toggle-debugger.py
+├── package.json          # With Tailwind scripts
+├── tailwind.config.js
+├── .githooks/
+│   └── pre-commit       # Auto-format on commit
+├── lamdera-dev-watch.sh  # Development server
+├── toggle-debugger.py    # Debug helper
 ├── head.html
-└── (optional files)
-    ├── package.json          # with --tailwind
-    ├── tailwind.config.js    # with --tailwind
-    ├── elm-test-rs.json      # with --test
-    ├── .cursorrules          # with --cursor
-    └── openEditor.sh         # with --cursor
-```
-
-## Feature Details
-
-### Tailwind CSS Integration
-
-When you add Tailwind CSS (`--tailwind`), you get:
-
-- Pre-configured `tailwind.config.js`
-- NPM scripts for development and production builds
-- Beautiful starter template with gradient design
-- Dark mode support (when combined with `--i18n`)
-
-### Internationalization (i18n)
-
-The `--i18n` flag adds:
-
-- Language switcher (English/French by default)
-- Dark/Light/System theme modes
-- LocalStorage persistence for user preferences
-- Auto-detection of browser language and system theme
-- Easy-to-extend translation system
-
-### Testing with lamdera-program-test
-
-The `--test` flag sets up:
-
-- Effect pattern for testable Lamdera code
-- Example test suite
-- elm-test-rs configuration
-- Compatible with all other features
-
-### Development Tools
-
-Every project includes:
-
-- `lamdera-dev-watch.sh` - Auto-recompiling development server
-- `toggle-debugger.py` - Quick debugger toggling
-- Hot reload support with elm-hot
-
-## Examples
-
-### Basic Lamdera app
-
-```bash
-create-lamdera-app --name my-app
-```
-
-### Full-featured app
-
-```bash
-create-lamdera-app --name my-app --cursor yes --tailwind --test --i18n
-```
-
-### Using Bun for faster installs
-
-```bash
-# Install Bun first: https://bun.sh
-create-lamdera-app --name my-app --tailwind --bun
-```
-
-### Add Tailwind to existing project
-
-```bash
-cd my-existing-app
-create-lamdera-app --init --tailwind
+├── .cursorrules         # Cursor editor rules
+└── openEditor.sh        # Quick editor opener
 ```
 
 ## Development
 
-### Running Tests
+### Start the development server
 
 ```bash
-npm test
-npm run test:watch
-npm run test:coverage
+cd my-app
+npm start
+# or
+bun run start
 ```
 
-### Test All Feature Combinations
+This runs both Lamdera and Tailwind CSS watchers concurrently.
+
+### Use a different port
 
 ```bash
-./test-all-combinations.sh
+PORT=3000 npm start
 ```
 
-This creates 8 test applications with essential feature combinations and verifies they compile correctly.
+### Run with hot reload
 
-## Requirements
+```bash
+npm run start:hot
+```
 
-- Node.js ≥ 14.0.0
-- npm ≥ 6.0.0
-- [Lamdera](https://lamdera.com) installed
-- [elm-test-rs](https://github.com/mpizenberg/elm-test-rs) (for testing features)
+### Run tests
+
+```bash
+elm-test-rs --compiler $(which lamdera)
+```
+
+## Authentication Setup
+
+The generated app includes authentication scaffolding for:
+- Google One Tap sign-in
+- GitHub OAuth
+- Email authentication
+
+To enable authentication:
+1. Set up OAuth apps with Google/GitHub
+2. Add your credentials to `auth-env.elm`
+3. Configure callback URLs
+
+## i18n and Theming
+
+- Language switcher (EN/FR) in the header
+- Dark/Light/System theme selector
+- Preferences persist in localStorage
+- Auto-detects browser language and system theme
+
+## Testing
+
+Example tests are included using `lamdera-program-test`. The tests demonstrate:
+- User interactions (clicks, form inputs)
+- Frontend message handling
+- Backend communication
+- Effect command testing
+
+## Package Manager Support
+
+### Using Bun (recommended for speed)
+
+```bash
+create-lamdera-app --name my-app --bun
+```
+
+Bun provides 10-100x faster package installation compared to npm.
+
+### Install Bun
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Roadmap
-
-- [ ] Add authentication support
-- [ ] Add elm-review integration
-- [ ] Add Capacitor support for mobile app development
-
 ## License
 
-MIT © Charles-André Assus
-
-## Acknowledgments
-
-- [Lamdera](https://lamdera.com) for the amazing platform
-- [Tailwind CSS](https://tailwindcss.com) for the utility-first CSS framework
-- [elm-test-rs](https://github.com/mpizenberg/elm-test-rs) for fast Elm testing
+MIT
