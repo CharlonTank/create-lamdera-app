@@ -1,13 +1,8 @@
-module Tests exposing (..)
+module Tests exposing (tests)
 
-import Expect
-import Test exposing (..)
+import Test exposing (Test)
 
 
-suite : Test
-suite =
-    describe "Placeholder Tests"
-        [ test "placeholder test" <|
-            \_ ->
-                Expect.equal 1 1
-        ]
+tests : List Test
+tests =
+    []
