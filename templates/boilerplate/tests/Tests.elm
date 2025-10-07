@@ -1,8 +1,11 @@
 module Tests exposing (tests)
 
-import Test exposing (Test)
+import Backend
+import Effect.Test as TF
+import Frontend
+import Types exposing (..)
 
 
-tests : List Test
+tests : List (TF.EndToEndTest ToBackend FrontendMsg FrontendModel ToFrontend BackendMsg BackendModel)
 tests =
     []
