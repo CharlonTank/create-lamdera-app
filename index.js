@@ -29,14 +29,14 @@ const parseArgs = () => {
     github: null,
     visibility: 'private',
     skipInstall: false,
-    packageManager: 'npm' // default to npm
+    packageManager: 'npm', // default to npm
   };
-  
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     const nextArg = args[i + 1];
-    
-    switch(arg) {
+
+    switch (arg) {
       case '--init':
         parsed.init = true;
         break;
@@ -53,10 +53,16 @@ const parseArgs = () => {
         i++;
         break;
       case '--github':
-        if (nextArg && (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n')) {
+        if (
+          nextArg &&
+          (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n')
+        ) {
           parsed.github = nextArg === 'yes' || nextArg === 'y';
           i++;
-        } else if (!nextArg || (nextArg !== 'yes' && nextArg !== 'no' && nextArg !== 'y' && nextArg !== 'n')) {
+        } else if (
+          !nextArg ||
+          (nextArg !== 'yes' && nextArg !== 'no' && nextArg !== 'y' && nextArg !== 'n')
+        ) {
           console.error(chalk.red('--github must be yes or no'));
           process.exit(1);
         }
@@ -88,7 +94,7 @@ const parseArgs = () => {
         break;
     }
   }
-  
+
   return parsed;
 };
 
@@ -148,13 +154,16 @@ ${chalk.bold('Examples:')}
 
 // Only create readline interface if we need it (no args provided)
 let rl = null;
-const isNewProjectInteractive = !parsedArgs.init && !parsedArgs.installPrecommit && (!parsedArgs.name || parsedArgs.github === null);
+const isNewProjectInteractive =
+  !parsedArgs.init &&
+  !parsedArgs.installPrecommit &&
+  (!parsedArgs.name || parsedArgs.github === null);
 const isInitInteractive = parsedArgs.init && parsedArgs.cursor === null;
 
 if (isNewProjectInteractive || isInitInteractive) {
   rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 }
 
@@ -170,27 +179,29 @@ function execCommand(command, showProgress = false) {
     // Special handling for npm commands to show progress
     if (showProgress && command.startsWith('npm')) {
       console.log(chalk.blue(`⏳ Running: ${command}`));
-      console.log(chalk.gray('This may take a few minutes depending on your internet connection...'));
-      
+      console.log(
+        chalk.gray('This may take a few minutes depending on your internet connection...')
+      );
+
       // Add progress flag to npm commands
       if (command.includes('npm install')) {
         command = command.replace('npm install', 'npm install --progress');
       }
     }
-    
+
     // Add timeout for npm commands
-    const options = { 
-      stdio: 'inherit', 
-      killSignal: 'SIGINT'
+    const options = {
+      stdio: 'inherit',
+      killSignal: 'SIGINT',
     };
-    
+
     // For npm install, add a longer timeout (5 minutes)
     if (command.includes('npm install')) {
       options.timeout = 300000; // 5 minutes
     }
-    
+
     execSync(command, options);
-    
+
     if (showProgress && command.startsWith('npm')) {
       console.log(chalk.green('✓ Command completed successfully'));
     }
@@ -217,7 +228,7 @@ function checkPrerequisites(packageManager = 'npm') {
     console.error(chalk.red('Lamdera is not installed. Please install it first.'));
     process.exit(1);
   }
-  
+
   // Check if selected package manager is installed
   if (packageManager === 'bun') {
     try {
@@ -238,32 +249,47 @@ function createUtilityFiles(projectPath, useCursor, useTest = false) {
   const templatePath = path.join(__dirname, 'templates');
 
   // Copy template files
-  fs.copyFileSync(path.join(templatePath, 'utilities', 'lamdera-dev-watch.sh'), path.join(projectPath, 'lamdera-dev-watch.sh'));
+  fs.copyFileSync(
+    path.join(templatePath, 'utilities', 'lamdera-dev-watch.sh'),
+    path.join(projectPath, 'lamdera-dev-watch.sh')
+  );
   fs.chmodSync(path.join(projectPath, 'lamdera-dev-watch.sh'), '755');
 
   // Use the appropriate toggle-debugger.py version based on test mode
   const toggleDebuggerSource = useTest
     ? path.join(templatePath, 'features', 'test', 'test-toggle-debugger.py')
     : path.join(templatePath, 'utilities', 'toggle-debugger.py');
-  
+
   fs.copyFileSync(toggleDebuggerSource, path.join(projectPath, 'toggle-debugger.py'));
   fs.chmodSync(path.join(projectPath, 'toggle-debugger.py'), '755');
 
   if (useCursor) {
-    fs.copyFileSync(path.join(templatePath, 'utilities', '.cursorrules'), path.join(projectPath, '.cursorrules'));
-    fs.copyFileSync(path.join(templatePath, 'utilities', 'openEditor.sh'), path.join(projectPath, 'openEditor.sh'));
+    fs.copyFileSync(
+      path.join(templatePath, 'utilities', '.cursorrules'),
+      path.join(projectPath, '.cursorrules')
+    );
+    fs.copyFileSync(
+      path.join(templatePath, 'utilities', 'openEditor.sh'),
+      path.join(projectPath, 'openEditor.sh')
+    );
     fs.chmodSync(path.join(projectPath, 'openEditor.sh'), '755');
   }
 }
 
 // Initialize Tailwind CSS
-function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall = false, packageManager = 'npm') {
+function setupTailwind(
+  projectPath,
+  baseDir,
+  skipFrontend = false,
+  skipInstall = false,
+  packageManager = 'npm'
+) {
   console.log(chalk.blue('Setting up Tailwind CSS...'));
-  
+
   // Save current directory and change to project path
   const originalDir = process.cwd();
   process.chdir(projectPath);
-  
+
   try {
     // Initialize package.json
     if (packageManager === 'bun') {
@@ -271,15 +297,17 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
     } else {
       execCommand('npm init -y', true);
     }
-    
+
     // Wait a moment and verify package.json was created
     if (!fs.existsSync('./package.json')) {
       throw new Error('Failed to create package.json');
     }
-    
+
     // Install dependencies unless skipped
     if (!skipInstall) {
-      console.log(chalk.yellow(`\n📦 Installing Tailwind CSS dependencies with ${packageManager}...`));
+      console.log(
+        chalk.yellow(`\n📦 Installing Tailwind CSS dependencies with ${packageManager}...`)
+      );
       if (packageManager === 'bun') {
         execCommand('bun add tailwindcss@^3', true);
         execCommand('bun add -d concurrently', true);
@@ -289,22 +317,24 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
       }
     } else {
       console.log(chalk.yellow(`\n⚠️  Skipping ${packageManager} install as requested`));
-      console.log(chalk.gray(`Run "${packageManager} install" manually later to install dependencies`));
-      
+      console.log(
+        chalk.gray(`Run "${packageManager} install" manually later to install dependencies`)
+      );
+
       // Still need to update package.json with dependencies
       const packageJsonPath = './package.json';
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       packageJson.dependencies = {
         ...packageJson.dependencies,
-        "tailwindcss": "^3"
+        tailwindcss: '^3',
       };
       packageJson.devDependencies = {
         ...packageJson.devDependencies,
-        "concurrently": "^9.0.0"
+        concurrently: '^9.0.0',
       };
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     }
-    
+
     // Create tailwind.config.js content manually (since v4 doesn't have init)
     const tailwindConfig = `module.exports = {
   darkMode: 'class',
@@ -317,60 +347,66 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
   },
   plugins: [],
 }`;
-  
+
     fs.writeFileSync('./tailwind.config.js', tailwindConfig);
-    
+
     // Create src/styles.css
     const stylesCss = `@tailwind base;
 @tailwind components;
 @tailwind utilities;`;
-    
+
     // Ensure src directory exists
     if (!fs.existsSync('./src')) {
       fs.mkdirSync('./src');
     }
-    
+
     fs.writeFileSync('./src/styles.css', stylesCss);
-  
+
     // Update head.html to include Tailwind styles (we're in the project directory)
     const headPath = './head.html';
     if (fs.existsSync(headPath)) {
       let headContent = fs.readFileSync(headPath, 'utf8');
-    
+
       // Add the Tailwind CSS link before the closing style tag
       headContent = headContent.replace(
         '</style>',
         '</style>\n<link rel="stylesheet" href="/styles.css">'
       );
-      
+
       fs.writeFileSync(headPath, headContent);
     }
-  
+
     // Update package.json scripts (it's in the current directory after chdir)
     const packageJsonPath = './package.json';
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
-  // Use bunx instead of npx for Bun
-  const runner = packageManager === 'bun' ? 'bunx' : 'npx';
-  
-  packageJson.scripts = {
-    ...packageJson.scripts,
-    "start": `${runner} concurrently -k -s first "lamdera live --port=\${PORT:-8000}" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
-    "start:hot": `${runner} concurrently -k -s first "PORT=\${PORT:-8000} ./lamdera-dev-watch.sh" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
-    "start:ci": `(lamdera live --port=\${PORT:-8000} &) && ${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch`
-  };
-  
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-  
+
+    // Use bunx instead of npx for Bun
+    const runner = packageManager === 'bun' ? 'bunx' : 'npx';
+
+    packageJson.scripts = {
+      ...packageJson.scripts,
+      start: `${runner} concurrently -k -s first "lamdera live --port=\${PORT:-8000}" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+      'start:hot': `${runner} concurrently -k -s first "PORT=\${PORT:-8000} ./lamdera-dev-watch.sh" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+      'start:ci': `(lamdera live --port=\${PORT:-8000} &) && ${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch`,
+    };
+
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+
     // Update .gitignore for Tailwind
     const templatePath = path.join(baseDir, 'templates');
-    fs.copyFileSync(path.join(templatePath, 'features', 'tailwind', 'tailwind.gitignore'), './.gitignore');
-    
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'tailwind', 'tailwind.gitignore'),
+      './.gitignore'
+    );
+
     // Replace Frontend.elm with Tailwind example version (only if not using test mode)
     if (!skipFrontend) {
-      fs.copyFileSync(path.join(templatePath, 'features', 'tailwind', 'tailwind-frontend.elm'), './src/Frontend.elm');
+      fs.copyFileSync(
+        path.join(templatePath, 'features', 'tailwind', 'tailwind-frontend.elm'),
+        './src/Frontend.elm'
+      );
     }
-    
+
     console.log(chalk.green('Tailwind CSS setup complete!'));
   } finally {
     // Restore original directory
@@ -381,49 +417,73 @@ function setupTailwind(projectPath, baseDir, skipFrontend = false, skipInstall =
 // Setup lamdera-program-test
 function setupLamderaTest(projectPath, baseDir) {
   console.log(chalk.blue('Setting up lamdera-program-test...'));
-  
+
   const templatePath = path.join(baseDir, 'templates');
-  
+
   // Replace elm.json with test version
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-elm.json'), path.join(projectPath, 'elm.json'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'test-elm.json'),
+    path.join(projectPath, 'elm.json')
+  );
+
   // Replace Backend.elm, Frontend.elm, and Types.elm with test versions
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-backend.elm'), path.join(projectPath, 'src', 'Backend.elm'));
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-frontend.elm'), path.join(projectPath, 'src', 'Frontend.elm'));
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-types.elm'), path.join(projectPath, 'src', 'Types.elm'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'test-backend.elm'),
+    path.join(projectPath, 'src', 'Backend.elm')
+  );
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'test-frontend.elm'),
+    path.join(projectPath, 'src', 'Frontend.elm')
+  );
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'test-types.elm'),
+    path.join(projectPath, 'src', 'Types.elm')
+  );
+
   // Create tests directory
   fs.mkdirSync(path.join(projectPath, 'tests'), { recursive: true });
-  
+
   // Copy test template
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-tests.elm'), path.join(projectPath, 'tests', 'Tests.elm'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'test-tests.elm'),
+    path.join(projectPath, 'tests', 'Tests.elm')
+  );
+
   // Copy TestsRunner.elm
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'test-TestsRunner.elm'), path.join(projectPath, 'tests', 'TestsRunner.elm'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'test-TestsRunner.elm'),
+    path.join(projectPath, 'tests', 'TestsRunner.elm')
+  );
+
   // Copy elm-test-rs.json
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'elm-test-rs.json'), path.join(projectPath, 'elm-test-rs.json'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'elm-test-rs.json'),
+    path.join(projectPath, 'elm-test-rs.json')
+  );
+
   // Copy HOW_TO_WRITE_TESTS.md
-  fs.copyFileSync(path.join(templatePath, 'features', 'test', 'HOW_TO_WRITE_TESTS.md'), path.join(projectPath, 'HOW_TO_WRITE_TESTS.md'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'test', 'HOW_TO_WRITE_TESTS.md'),
+    path.join(projectPath, 'HOW_TO_WRITE_TESTS.md')
+  );
+
   // Set up pre-commit hook
   const githooksDir = path.join(projectPath, '.githooks');
   fs.mkdirSync(githooksDir, { recursive: true });
-  
+
   // Copy pre-commit hook
   const preCommitSource = path.join(templatePath, 'features', 'test', '.githooks', 'pre-commit');
   const preCommitDest = path.join(githooksDir, 'pre-commit');
   fs.copyFileSync(preCommitSource, preCommitDest);
-  
+
   // Make pre-commit hook executable
   fs.chmodSync(preCommitDest, '755');
-  
+
   // Configure git to use .githooks directory
   if (configureGitHooks(projectPath)) {
     console.log(chalk.green('Pre-commit hook configured!'));
   }
-  
+
   console.log(chalk.green('lamdera-program-test setup complete!'));
   console.log(chalk.gray('To run tests: elm-test-rs --compiler $(which lamdera)'));
 }
@@ -431,20 +491,32 @@ function setupLamderaTest(projectPath, baseDir) {
 // Setup i18n and dark mode
 function setupI18n(projectPath, baseDir, useTest = false, useTailwind = false) {
   console.log(chalk.blue('Setting up i18n and dark mode support...'));
-  
+
   const templatePath = path.join(baseDir, 'templates');
-  
+
   // Copy i18n and theme modules
-  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'I18n.elm'), path.join(projectPath, 'src', 'I18n.elm'));
-  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'Theme.elm'), path.join(projectPath, 'src', 'Theme.elm'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'i18n', 'I18n.elm'),
+    path.join(projectPath, 'src', 'I18n.elm')
+  );
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'i18n', 'Theme.elm'),
+    path.join(projectPath, 'src', 'Theme.elm')
+  );
+
   // Copy appropriate LocalStorage module
   if (useTest) {
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'test-LocalStorage.elm'), path.join(projectPath, 'src', 'LocalStorage.elm'));
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'test-LocalStorage.elm'),
+      path.join(projectPath, 'src', 'LocalStorage.elm')
+    );
   } else {
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'LocalStorage.elm'), path.join(projectPath, 'src', 'LocalStorage.elm'));
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'LocalStorage.elm'),
+      path.join(projectPath, 'src', 'LocalStorage.elm')
+    );
   }
-  
+
   // Replace Frontend with appropriate version based on flags
   let frontendTemplate;
   if (useTailwind && useTest) {
@@ -456,8 +528,11 @@ function setupI18n(projectPath, baseDir, useTest = false, useTailwind = false) {
   } else {
     frontendTemplate = 'i18n-theme-frontend.elm';
   }
-  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', frontendTemplate), path.join(projectPath, 'src', 'Frontend.elm'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'i18n', frontendTemplate),
+    path.join(projectPath, 'src', 'Frontend.elm')
+  );
+
   // Replace Types with appropriate version based on flags
   let typesTemplate;
   if (useTailwind && useTest) {
@@ -469,35 +544,56 @@ function setupI18n(projectPath, baseDir, useTest = false, useTailwind = false) {
   } else {
     typesTemplate = 'i18n-theme-types.elm';
   }
-  fs.copyFileSync(path.join(templatePath, 'features', 'i18n', typesTemplate), path.join(projectPath, 'src', 'Types.elm'));
-  
+  fs.copyFileSync(
+    path.join(templatePath, 'features', 'i18n', typesTemplate),
+    path.join(projectPath, 'src', 'Types.elm')
+  );
+
   // Replace head.html with appropriate i18n version
   if (useTailwind) {
     // Tailwind needs the styles.css link
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'tailwind-i18n-theme-head.html'), path.join(projectPath, 'head.html'));
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'tailwind-i18n-theme-head.html'),
+      path.join(projectPath, 'head.html')
+    );
   } else if (useTest) {
     // Test mode uses inline localStorage handler (for elm-pkg-js)
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'i18n-theme-head.html'), path.join(projectPath, 'head.html'));
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'i18n-theme-head.html'),
+      path.join(projectPath, 'head.html')
+    );
   } else {
     // Standard mode uses external localStorage.js file
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'i18n-theme-head-standard.html'), path.join(projectPath, 'head.html'));
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'i18n-theme-head-standard.html'),
+      path.join(projectPath, 'head.html')
+    );
   }
-  
+
   // If using test mode, set up elm-pkg-js
   if (useTest) {
     // Create elm-pkg-js directory
     fs.mkdirSync(path.join(projectPath, 'elm-pkg-js'), { recursive: true });
-    
+
     // Copy localStorage.js
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'elm-pkg-js', 'localStorage.js'), path.join(projectPath, 'elm-pkg-js', 'localStorage.js'));
-    
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'elm-pkg-js', 'localStorage.js'),
+      path.join(projectPath, 'elm-pkg-js', 'localStorage.js')
+    );
+
     // Copy elm-pkg-js-includes.js
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'elm-pkg-js-includes.js'), path.join(projectPath, 'elm-pkg-js-includes.js'));
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'elm-pkg-js-includes.js'),
+      path.join(projectPath, 'elm-pkg-js-includes.js')
+    );
   } else {
     // For non-test mode, copy the standalone localStorage.js
-    fs.copyFileSync(path.join(templatePath, 'features', 'i18n', 'localStorage.js'), path.join(projectPath, 'localStorage.js'));
+    fs.copyFileSync(
+      path.join(templatePath, 'features', 'i18n', 'localStorage.js'),
+      path.join(projectPath, 'localStorage.js')
+    );
   }
-  
+
   console.log(chalk.green('i18n and dark mode setup complete!'));
   console.log(chalk.gray('Features added:'));
   console.log(chalk.gray('- Language switcher (EN/FR)'));
@@ -508,85 +604,85 @@ function setupI18n(projectPath, baseDir, useTest = false, useTailwind = false) {
 // Setup authentication
 function setupAuth(projectPath, baseDir, useTest = false, useI18n = false) {
   console.log(chalk.blue('Setting up authentication...'));
-  
+
   const templatePath = path.join(baseDir, 'templates');
-  
+
   // Update elm.json to include elm-auth source directory
   const elmJsonPath = path.join(projectPath, 'elm.json');
   const elmJson = JSON.parse(fs.readFileSync(elmJsonPath, 'utf8'));
   elmJson['source-directories'].push('elm-auth/src');
-  
+
   // Add auth dependencies if not already present
   const authDependencies = {
-    "NoRedInk/elm-json-decode-pipeline": "1.0.1",
-    "TSFoster/elm-sha1": "2.1.1",
-    "TSFoster/elm-uuid": "4.2.0",
-    "chelovek0v/bbase64": "1.0.1",
-    "danfishgold/base64-bytes": "1.1.0",
-    "elm/regex": "1.0.0",
-    "elm-community/list-extra": "8.7.0",
-    "folkertdev/elm-sha2": "1.0.0",
-    "krisajenkins/remotedata": "6.1.0",
-    "ktonon/elm-crypto": "1.1.2",
-    "ktonon/elm-word": "2.1.2"
+    'NoRedInk/elm-json-decode-pipeline': '1.0.1',
+    'TSFoster/elm-sha1': '2.1.1',
+    'TSFoster/elm-uuid': '4.2.0',
+    'chelovek0v/bbase64': '1.0.1',
+    'danfishgold/base64-bytes': '1.1.0',
+    'elm/regex': '1.0.0',
+    'elm-community/list-extra': '8.7.0',
+    'folkertdev/elm-sha2': '1.0.0',
+    'krisajenkins/remotedata': '6.1.0',
+    'ktonon/elm-crypto': '1.1.2',
+    'ktonon/elm-word': '2.1.2',
   };
-  
+
   Object.entries(authDependencies).forEach(([pkg, version]) => {
     if (!elmJson.dependencies.direct[pkg]) {
       elmJson.dependencies.direct[pkg] = version;
     }
   });
-  
+
   fs.writeFileSync(elmJsonPath, JSON.stringify(elmJson, null, 4));
-  
+
   // Copy elm-auth package
   const elmAuthSrc = path.join(templatePath, 'features', 'auth', 'elm-auth');
   const elmAuthDest = path.join(projectPath, 'elm-auth');
   copyDirectoryRecursive(elmAuthSrc, elmAuthDest);
-  
+
   // Copy core auth files
   const authFiles = ['Auth.elm', 'GoogleOneTap.elm', 'Password.elm', 'Email.elm'];
-  authFiles.forEach(file => {
+  authFiles.forEach((file) => {
     fs.copyFileSync(
       path.join(templatePath, 'features', 'auth', file),
       path.join(projectPath, 'src', file)
     );
   });
-  
+
   // Copy auth pages
   const pagesDir = path.join(projectPath, 'src', 'Pages');
   fs.mkdirSync(pagesDir, { recursive: true });
-  
+
   const authPages = ['Login.elm', 'Register.elm', 'Admin.elm'];
-  authPages.forEach(page => {
-    fs.copyFileSync(
-      path.join(templatePath, 'features', 'auth', page),
-      path.join(pagesDir, page)
-    );
+  authPages.forEach((page) => {
+    fs.copyFileSync(path.join(templatePath, 'features', 'auth', page), path.join(pagesDir, page));
   });
-  
+
   // Update or create Env.elm
   fs.copyFileSync(
     path.join(templatePath, 'features', 'auth', 'auth-env.elm'),
     path.join(projectPath, 'src', 'Env.elm')
   );
-  
+
   // Copy JavaScript files
   const elmPkgJsDir = path.join(projectPath, 'elm-pkg-js');
   fs.mkdirSync(elmPkgJsDir, { recursive: true });
-  
+
   fs.copyFileSync(
     path.join(templatePath, 'features', 'auth', 'googleOneTap.js'),
     path.join(elmPkgJsDir, 'googleOneTap.js')
   );
-  
+
   // Update or copy elm-pkg-js-includes.js
   const includesPath = path.join(projectPath, 'elm-pkg-js-includes.js');
   if (fs.existsSync(includesPath)) {
     // Append to existing file
     const existingIncludes = fs.readFileSync(includesPath, 'utf8');
     if (!existingIncludes.includes('googleOneTap')) {
-      fs.appendFileSync(includesPath, '\nexports.init.push(require("./elm-pkg-js/googleOneTap").init);\n');
+      fs.appendFileSync(
+        includesPath,
+        '\nexports.init.push(require("./elm-pkg-js/googleOneTap").init);\n'
+      );
     }
   } else {
     // Copy new file
@@ -595,7 +691,7 @@ function setupAuth(projectPath, baseDir, useTest = false, useI18n = false) {
       includesPath
     );
   }
-  
+
   // Update head.html
   const headPath = path.join(projectPath, 'head.html');
   if (fs.existsSync(headPath)) {
@@ -611,25 +707,19 @@ function setupAuth(projectPath, baseDir, useTest = false, useI18n = false) {
     }
   } else {
     // Copy auth head.html
-    fs.copyFileSync(
-      path.join(templatePath, 'features', 'auth', 'auth-head.html'),
-      headPath
-    );
+    fs.copyFileSync(path.join(templatePath, 'features', 'auth', 'auth-head.html'), headPath);
   }
-  
+
   // Copy documentation
   const docs = ['GOOGLE_ONE_TAP_SETUP.md', 'GITHUB_OAUTH_SETUP.md'];
-  docs.forEach(doc => {
-    fs.copyFileSync(
-      path.join(templatePath, 'features', 'auth', doc),
-      path.join(projectPath, doc)
-    );
+  docs.forEach((doc) => {
+    fs.copyFileSync(path.join(templatePath, 'features', 'auth', doc), path.join(projectPath, doc));
   });
-  
+
   // TODO: Update Types.elm, Frontend.elm, Backend.elm, and Router.elm with auth support
   // This would be complex and require parsing/merging Elm code
   // For now, we'll note this as a manual step
-  
+
   console.log(chalk.green('Authentication setup complete!'));
   console.log(chalk.yellow('\nIMPORTANT: Manual steps required:'));
   console.log(chalk.gray('1. Update Types.elm with auth-related types from the boilerplate'));
@@ -637,18 +727,22 @@ function setupAuth(projectPath, baseDir, useTest = false, useI18n = false) {
   console.log(chalk.gray('3. Update Backend.elm with auth backend logic'));
   console.log(chalk.gray('4. Update Router.elm to include login/register routes'));
   console.log(chalk.gray('5. Configure OAuth credentials in src/Env.elm'));
-  console.log(chalk.gray('\nSee GOOGLE_ONE_TAP_SETUP.md and GITHUB_OAUTH_SETUP.md for OAuth setup instructions.'));
+  console.log(
+    chalk.gray(
+      '\nSee GOOGLE_ONE_TAP_SETUP.md and GITHUB_OAUTH_SETUP.md for OAuth setup instructions.'
+    )
+  );
 }
 
 // Helper function to copy directory recursively
 function copyDirectoryRecursive(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
-  
+
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
-    
+
     if (entry.isDirectory()) {
       copyDirectoryRecursive(srcPath, destPath);
     } else {
@@ -675,7 +769,7 @@ function initializeLamderaProject(projectPath) {
 
     if (isDirectory) {
       fs.mkdirSync(dest, { recursive: true });
-      fs.readdirSync(src).forEach(childItemName => {
+      fs.readdirSync(src).forEach((childItemName) => {
         copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
       });
     } else {
@@ -689,7 +783,7 @@ function initializeLamderaProject(projectPath) {
 // Initialize from boilerplate - copies complete boilerplate project
 function initializeFromBoilerplate(projectPath, packageManager) {
   const boilerplatePath = path.join(__dirname, 'templates', 'boilerplate');
-  
+
   if (!fs.existsSync(boilerplatePath)) {
     console.error(chalk.red('Boilerplate template not found'));
     process.exit(1);
@@ -705,13 +799,19 @@ function initializeFromBoilerplate(projectPath, packageManager) {
     const basename = path.basename(src);
 
     // Skip .DS_Store, elm-stuff, node_modules, and git directories
-    if (basename === '.DS_Store' || basename === 'elm-stuff' || basename === 'node_modules' || basename === '.git' || basename === '.lamdera') {
+    if (
+      basename === '.DS_Store' ||
+      basename === 'elm-stuff' ||
+      basename === 'node_modules' ||
+      basename === '.git' ||
+      basename === '.lamdera'
+    ) {
       return;
     }
 
     if (isDirectory) {
       fs.mkdirSync(dest, { recursive: true });
-      fs.readdirSync(src).forEach(childItemName => {
+      fs.readdirSync(src).forEach((childItemName) => {
         copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
       });
     } else {
@@ -720,20 +820,20 @@ function initializeFromBoilerplate(projectPath, packageManager) {
   };
 
   copyRecursive(boilerplatePath, projectPath);
-  
+
   // Update package.json scripts based on package manager
   const packageJsonPath = path.join(projectPath, 'package.json');
   if (fs.existsSync(packageJsonPath)) {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     const runner = packageManager === 'bun' ? 'bunx' : 'npx';
-    
+
     packageJson.scripts = {
       ...packageJson.scripts,
-      "start": `${runner} concurrently -k -s first "lamdera live --port=\${PORT:-8000}" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
-      "start:hot": `${runner} concurrently -k -s first "PORT=\${PORT:-8000} ./lamdera-dev-watch.sh" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
-      "start:ci": `(lamdera live --port=\${PORT:-8000} &) && ${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch`
+      start: `${runner} concurrently -k -s first "lamdera live --port=\${PORT:-8000}" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+      'start:hot': `${runner} concurrently -k -s first "PORT=\${PORT:-8000} ./lamdera-dev-watch.sh" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+      'start:ci': `(lamdera live --port=\${PORT:-8000} &) && ${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch`,
     };
-    
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   }
 }
@@ -747,18 +847,22 @@ async function initializeExistingProject() {
 
   // Check if already in a Lamdera project
   if (!fs.existsSync('./elm.json')) {
-    console.error(chalk.red('No elm.json found. Please run this command in an existing Lamdera project directory.'));
+    console.error(
+      chalk.red(
+        'No elm.json found. Please run this command in an existing Lamdera project directory.'
+      )
+    );
     process.exit(1);
   }
 
   try {
     let useCursor = parsedArgs.cursor;
-    
+
     // Only ask if not provided via CLI
     if (useCursor === null) {
       if (rl) {
         console.log(chalk.cyan('Do you use Cursor editor? (y/n)'));
-        const answer = await new Promise(resolve => rl.question('', resolve));
+        const answer = await new Promise((resolve) => rl.question('', resolve));
         useCursor = answer.toLowerCase() === 'y';
       } else {
         useCursor = false; // Default to false in non-interactive mode
@@ -767,42 +871,52 @@ async function initializeExistingProject() {
 
     // Check if it's a test project
     const elmJson = JSON.parse(fs.readFileSync('./elm.json', 'utf8'));
-    const isTestProject = elmJson.dependencies && 
-                         elmJson.dependencies.direct && 
-                         elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
-    
+    const isTestProject =
+      elmJson.dependencies &&
+      elmJson.dependencies.direct &&
+      elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
+
     // Create utility files
     console.log(chalk.blue('Creating utility files...'));
     createUtilityFiles(process.cwd(), useCursor, isTestProject);
-    
+
     // Check if user wants Tailwind
     let useTailwind = parsedArgs.tailwind;
     if (useTailwind === null && rl) {
       console.log(chalk.cyan('Do you want to use Tailwind CSS? (y/n)'));
-      const answer = await new Promise(resolve => rl.question('', resolve));
+      const answer = await new Promise((resolve) => rl.question('', resolve));
       useTailwind = answer.toLowerCase() === 'y';
     }
-    
+
     // Set up Tailwind if requested
     if (useTailwind) {
-      setupTailwind(process.cwd(), __dirname, true, parsedArgs.skipInstall, parsedArgs.packageManager); // Skip frontend since it already exists
+      setupTailwind(
+        process.cwd(),
+        __dirname,
+        true,
+        parsedArgs.skipInstall,
+        parsedArgs.packageManager
+      ); // Skip frontend since it already exists
     }
-    
+
     // Check if user wants i18n
     let useI18n = parsedArgs.i18n;
     if (useI18n === null && rl) {
-      console.log(chalk.cyan('Do you want to add internationalization and dark mode support? (y/n)'));
-      const answer = await new Promise(resolve => rl.question('', resolve));
+      console.log(
+        chalk.cyan('Do you want to add internationalization and dark mode support? (y/n)')
+      );
+      const answer = await new Promise((resolve) => rl.question('', resolve));
       useI18n = answer.toLowerCase() === 'y';
     }
-    
+
     // Set up i18n if requested
     if (useI18n) {
       // Check if this is a test project
       const elmJson = JSON.parse(fs.readFileSync('./elm.json', 'utf8'));
-      const isTestProject = elmJson.dependencies && 
-                           elmJson.dependencies.direct && 
-                           elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
+      const isTestProject =
+        elmJson.dependencies &&
+        elmJson.dependencies.direct &&
+        elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
       setupI18n(process.cwd(), __dirname, isTestProject);
     }
 
@@ -817,13 +931,19 @@ async function initializeExistingProject() {
 async function installPrecommitHook() {
   // Check if already in a Lamdera project
   if (!fs.existsSync('./elm.json')) {
-    console.error(chalk.red('No elm.json found. Please run this command in an existing Lamdera project directory.'));
+    console.error(
+      chalk.red(
+        'No elm.json found. Please run this command in an existing Lamdera project directory.'
+      )
+    );
     process.exit(1);
   }
 
   // Check if it's a git repository
   if (!fs.existsSync('.git')) {
-    console.error(chalk.red('No .git directory found. Please run this command in a git repository.'));
+    console.error(
+      chalk.red('No .git directory found. Please run this command in a git repository.')
+    );
     process.exit(1);
   }
 
@@ -838,7 +958,7 @@ async function installPrecommitHook() {
   if (!fs.existsSync(reviewDir)) {
     console.log(chalk.blue('Adding elm-review configuration...'));
     const templatePath = path.join(__dirname, 'templates', 'base');
-    
+
     // Copy the review directory recursively
     const copyRecursive = (src, dest) => {
       const exists = fs.existsSync(src);
@@ -853,7 +973,7 @@ async function installPrecommitHook() {
 
       if (isDirectory) {
         fs.mkdirSync(dest, { recursive: true });
-        fs.readdirSync(src).forEach(childItemName => {
+        fs.readdirSync(src).forEach((childItemName) => {
           copyRecursive(path.join(src, childItemName), path.join(dest, childItemName));
         });
       } else {
@@ -867,9 +987,10 @@ async function installPrecommitHook() {
 
   // Check if it's a test project
   const elmJson = JSON.parse(fs.readFileSync('./elm.json', 'utf8'));
-  const isTestProject = elmJson.dependencies && 
-                       elmJson.dependencies.direct && 
-                       elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
+  const isTestProject =
+    elmJson.dependencies &&
+    elmJson.dependencies.direct &&
+    elmJson.dependencies.direct['lamdera/program-test'] !== undefined;
 
   // Create appropriate pre-commit hook
   const templatePath = path.join(__dirname, 'templates', 'features', 'precommit');
@@ -879,17 +1000,18 @@ async function installPrecommitHook() {
 
   // Copy the pre-commit hook
   fs.copyFileSync(preCommitSource, preCommitDest);
-  
+
   // Make pre-commit hook executable
   fs.chmodSync(preCommitDest, '755');
-  
+
   // Update .gitignore to include tmp/ if it exists
   const gitignorePath = path.join(process.cwd(), '.gitignore');
   if (fs.existsSync(gitignorePath)) {
     let gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
     if (!gitignoreContent.includes('tmp/') && !gitignoreContent.includes('\ntmp\n')) {
       // Add tmp/ to gitignore if not already present
-      gitignoreContent = gitignoreContent.trimEnd() + '\n\n# Temporary files (Claude auto-fix logs)\ntmp/\n';
+      gitignoreContent =
+        gitignoreContent.trimEnd() + '\n\n# Temporary files (Claude auto-fix logs)\ntmp/\n';
       fs.writeFileSync(gitignorePath, gitignoreContent);
       console.log(chalk.blue('✅ Added tmp/ to .gitignore'));
     }
@@ -915,7 +1037,7 @@ tmp/
     fs.writeFileSync(gitignorePath, gitignoreContent);
     console.log(chalk.blue('✅ Created .gitignore with tmp/'));
   }
-  
+
   // Configure git to use .githooks directory
   if (configureGitHooks(process.cwd())) {
     console.log(chalk.green('✅ Pre-commit hooks installed successfully!'));
@@ -928,7 +1050,9 @@ tmp/
     }
     console.log(chalk.gray('- elm-review --fix-all'));
     console.log(chalk.gray(''));
-    console.log(chalk.yellow('Note: Make sure you have elm-format and elm-review installed globally:'));
+    console.log(
+      chalk.yellow('Note: Make sure you have elm-format and elm-review installed globally:')
+    );
     console.log(chalk.cyan('  npm install -g elm-format elm-review'));
   } else {
     console.error(chalk.red('Failed to configure git hooks. You can manually run:'));
@@ -945,12 +1069,14 @@ async function createNewProject() {
     // Get project name if not provided
     if (!projectName) {
       if (!rl) {
-        console.error(chalk.red('Project name is required. Use --name <name> or run interactively.'));
+        console.error(
+          chalk.red('Project name is required. Use --name <name> or run interactively.')
+        );
         process.exit(1);
       }
       console.log(chalk.cyan('Enter your project name:'));
-      projectName = await new Promise(resolve => rl.question('', resolve));
-      
+      projectName = await new Promise((resolve) => rl.question('', resolve));
+
       if (!projectName) {
         console.error(chalk.red('Project name is required'));
         process.exit(1);
@@ -962,14 +1088,16 @@ async function createNewProject() {
       console.error(chalk.red('Project name cannot be empty'));
       process.exit(1);
     }
-    
+
     if (projectName.includes(' ')) {
       console.error(chalk.red('Project name cannot contain spaces'));
       process.exit(1);
     }
-    
+
     if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
-      console.error(chalk.red('Project name can only contain letters, numbers, hyphens, and underscores'));
+      console.error(
+        chalk.red('Project name can only contain letters, numbers, hyphens, and underscores')
+      );
       process.exit(1);
     }
 
@@ -987,7 +1115,7 @@ async function createNewProject() {
 
     // ALWAYS use boilerplate - it includes all features
     initializeFromBoilerplate(projectPath, parsedArgs.packageManager);
-    
+
     // Run npm/bun install if not skipped
     if (!parsedArgs.skipInstall) {
       const pm = parsedArgs.packageManager;
@@ -1002,7 +1130,7 @@ async function createNewProject() {
     // Handle GitHub repository
     if (createRepo === null && rl) {
       console.log(chalk.cyan('Do you want to create a GitHub repository? (y/n)'));
-      const answer = await new Promise(resolve => rl.question('', resolve));
+      const answer = await new Promise((resolve) => rl.question('', resolve));
       createRepo = answer.toLowerCase() === 'y';
     }
 
@@ -1011,9 +1139,15 @@ async function createNewProject() {
         execSync('gh --version', { stdio: 'ignore' });
 
         // Get visibility preference if not set
-        if (createRepo && repoVisibility === 'private' && rl && parsedArgs.visibility === 'private' && !args.includes('--private')) {
+        if (
+          createRepo &&
+          repoVisibility === 'private' &&
+          rl &&
+          parsedArgs.visibility === 'private' &&
+          !args.includes('--private')
+        ) {
           console.log(chalk.cyan('Do you want the repository to be public or private? (pub/priv)'));
-          const answer = await new Promise(resolve => rl.question('', resolve));
+          const answer = await new Promise((resolve) => rl.question('', resolve));
           repoVisibility = answer === 'pub' ? 'public' : 'private';
         }
 
@@ -1021,15 +1155,17 @@ async function createNewProject() {
 
         console.log(chalk.blue('Creating GitHub repository...'));
         execCommand('git init');
-        
+
         // Configure git hooks (boilerplate always includes pre-commit)
         if (fs.existsSync(path.join(projectPath, '.githooks', 'pre-commit'))) {
           configureGitHooks(projectPath);
         }
-        
+
         execCommand('git add .');
         execCommand('git commit -m "Initial commit"');
-        execCommand(`gh repo create "${projectName}" ${visibilityFlag} --source=. --remote=origin --push`);
+        execCommand(
+          `gh repo create "${projectName}" ${visibilityFlag} --source=. --remote=origin --push`
+        );
 
         console.log(chalk.green('GitHub repository created and code pushed!'));
       } catch {
@@ -1042,15 +1178,23 @@ async function createNewProject() {
     const pm = parsedArgs.packageManager;
     console.log(chalk.blue('📦 To start development:'));
     console.log(chalk.cyan(`  cd ${projectName}`));
-    
+
     if (parsedArgs.skipInstall) {
       console.log(chalk.yellow(`  ${pm} install ${chalk.gray('(install dependencies first)')}`));
     }
-    
-    console.log(chalk.cyan(`  ${pm} ${pm === 'bun' ? 'run ' : ''}start ${chalk.gray('(runs Lamdera + Tailwind watcher)')}`));
+
+    console.log(
+      chalk.cyan(
+        `  ${pm} ${pm === 'bun' ? 'run ' : ''}start ${chalk.gray('(runs Lamdera + Tailwind watcher)')}`
+      )
+    );
     console.log('');
     console.log(chalk.blue('🔧 Development commands:'));
-    console.log(chalk.cyan(`  PORT=3000 ${pm} ${pm === 'bun' ? 'run ' : ''}start ${chalk.gray('(custom port)')}`));
+    console.log(
+      chalk.cyan(
+        `  PORT=3000 ${pm} ${pm === 'bun' ? 'run ' : ''}start ${chalk.gray('(custom port)')}`
+      )
+    );
     console.log(chalk.cyan(`  ${pm} run start:hot ${chalk.gray('(with elm-pkg-js hot-reload)')}`));
     console.log('');
     console.log(chalk.blue('🧪 Testing:'));
@@ -1094,4 +1238,4 @@ async function main() {
   }
 }
 
-main(); 
+main();

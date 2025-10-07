@@ -8,7 +8,7 @@ function runCLI(args) {
   const cli = path.join(__dirname, '..', 'index.js');
   return execSync(`node "${cli}" ${args}`, {
     encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'pipe']
+    stdio: ['pipe', 'pipe', 'pipe'],
   }).trim();
 }
 
@@ -118,7 +118,7 @@ describe('create-lamdera-app CLI', () => {
         // Try to compile
         const output = execSync('lamdera make src/Frontend.elm src/Backend.elm', {
           encoding: 'utf8',
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
 
         expect(output).toContain('Success!');
@@ -150,10 +150,10 @@ describe('create-lamdera-app CLI', () => {
 
       try {
         const projectName = 'duplicate-project';
-        
+
         // Create first project
         runCLI(`--name ${projectName} --no-github --skip-install`);
-        
+
         // Try to create duplicate - should fail
         expect(() => {
           runCLI(`--name ${projectName} --no-github --skip-install`);

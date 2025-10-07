@@ -1,0 +1,277 @@
+#!/bin/bash
+
+# Pre-commit hook for Lamdera projects with lamdera-program-test
+
+# Try to find claude in common locations
+find_claude() {
+    # First try the direct command
+    if command -v claude &> /dev/null; then
+        echo "claude"
+        return 0
+    fi
+    
+    # Try common installation paths
+    local paths=(
+        "$HOME/.claude/local/claude"
+        "/usr/local/bin/claude"
+        "$HOME/.npm-global/bin/claude"
+        "$HOME/.local/bin/claude"
+        "$HOME/bin/claude"
+        "/opt/homebrew/bin/claude"
+        "/usr/bin/claude"
+        "$(npm bin -g 2>/dev/null)/claude"
+        "$HOME/.nvm/versions/node/$(node -v 2>/dev/null)/bin/claude"
+    )
+    
+    for path in "${paths[@]}"; do
+        if [ -x "$path" ]; then
+            echo "$path"
+            return 0
+        fi
+    done
+    
+    # Try to source shell profiles to get full PATH
+    # Source multiple profile files in order of precedence
+    local profiles=(
+        "$HOME/.zprofile"
+        "$HOME/.zshrc"
+        "$HOME/.bash_profile"
+        "$HOME/.bashrc"
+        "$HOME/.profile"
+    )
+    
+    for profile in "${profiles[@]}"; do
+        if [ -f "$profile" ]; then
+            # Source the profile and immediately check for claude
+            (source "$profile" 2>/dev/null && command -v claude 2>/dev/null) && echo "claude" && return 0
+        fi
+    done
+    
+    # Check if it's available via different shells
+    # Fish shell - check both 'which' and 'command'
+    if fish -l -c 'which claude' &> /dev/null; then
+        # Get the actual path from fish
+        local claude_path=$(fish -l -c 'which claude' 2>/dev/null)
+        if [ -n "$claude_path" ]; then
+            echo "$claude_path"
+            return 0
+        fi
+    fi
+    
+    # Alternative fish check
+    if fish -l -c 'command -v claude' &> /dev/null; then
+        echo "fish -l -c claude"
+        return 0
+    fi
+    
+    # Bash
+    if bash -l -c 'command -v claude' &> /dev/null; then
+        echo "bash -l -c claude"
+        return 0
+    fi
+    
+    # Zsh
+    if zsh -l -c 'command -v claude' &> /dev/null; then
+        echo "zsh -l -c claude"
+        return 0
+    fi
+    
+    return 1
+}
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. Run elm-format
+echo "🎨 Running elm-format..."
+if ! elm-format --yes src/ tests/; then
+    echo "❌ elm-format failed! Please install elm-format:"
+    echo "   npm install -g elm-format"
+    exit 1
+fi
+
+echo "✅ elm-format completed!"
+
+# 2. Check compilation (including tests)
+echo "📦 Checking compilation..."
+if ! lamdera make src/Backend.elm src/Frontend.elm tests/Tests.elm; then
+    echo "❌ Compilation failed!"
+    
+    # Create tmp directory if it doesn't exist
+    mkdir -p tmp
+    
+    # Capture compilation output to log file
+    echo "📝 Capturing compilation errors to tmp/lamdera-make.log..."
+    lamdera make src/Backend.elm src/Frontend.elm tests/Tests.elm > tmp/lamdera-make.log 2>&1
+    
+    # Check if claude CLI is available
+    CLAUDE_CMD=$(find_claude)
+    if [ $? -eq 0 ] && [ -n "$CLAUDE_CMD" ]; then
+        echo "   ✓ Claude CLI found: $CLAUDE_CMD"
+        echo ""
+        echo "🤖 Would you like Claude to automatically fix these compilation errors?"
+        # Read from /dev/tty to ensure we can get user input in git hook
+        read -p "   Run Claude auto-fix? (y/n): " -n 1 -r < /dev/tty
+        echo ""
+        
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "🔧 Running Claude to fix compilation errors..."
+            # Handle different ways claude might be available
+            if [[ "$CLAUDE_CMD" == *" -l -c claude" ]]; then
+                # Claude needs to be run through a login shell
+                $CLAUDE_CMD "Fix the compilation errors found in tmp/lamdera-make.log"
+            else
+                # Claude is a regular command
+                "$CLAUDE_CMD" "Fix the compilation errors found in tmp/lamdera-make.log"
+            fi
+            
+            echo "🔄 Re-checking compilation..."
+            if lamdera make src/Backend.elm src/Frontend.elm tests/Tests.elm; then
+                echo "✅ Claude successfully fixed the compilation errors!"
+                rm -f tmp/lamdera-make.log
+            else
+                echo "⚠️  Some compilation errors remain after Claude's fixes."
+                echo "   Please fix the remaining errors before committing."
+                echo "   Log file: tmp/lamdera-make.log"
+                exit 1
+            fi
+        else
+            echo "   Please fix compilation errors before committing."
+            echo "   Log file: tmp/lamdera-make.log"
+            exit 1
+        fi
+    else
+        echo "   Please fix compilation errors before committing."
+        echo "   Log file: tmp/lamdera-make.log"
+        echo "   💡 Install Claude CLI for auto-fixing: https://claude.ai/code"
+        exit 1
+    fi
+else
+    echo "✅ Compilation successful!"
+fi
+
+# 3. Run tests
+echo "🧪 Running tests..."
+if ! elm-test-rs --compiler $(which lamdera); then
+    echo "❌ Tests failed!"
+    
+    # Create tmp directory if it doesn't exist
+    mkdir -p tmp
+    
+    # Capture test output to log file
+    echo "📝 Capturing test failures to tmp/elm-test.log..."
+    elm-test-rs --compiler $(which lamdera) > tmp/elm-test.log 2>&1
+    
+    # Check if claude CLI is available
+    CLAUDE_CMD=$(find_claude)
+    if [ $? -eq 0 ] && [ -n "$CLAUDE_CMD" ]; then
+        echo "   ✓ Claude CLI found: $CLAUDE_CMD"
+        echo ""
+        echo "🤖 Would you like Claude to automatically fix these test failures?"
+        # Read from /dev/tty to ensure we can get user input in git hook
+        read -p "   Run Claude auto-fix? (y/n): " -n 1 -r < /dev/tty
+        echo ""
+        
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "🔧 Running Claude to fix test failures..."
+            # Handle different ways claude might be available
+            if [[ "$CLAUDE_CMD" == *" -l -c claude" ]]; then
+                # Claude needs to be run through a login shell
+                $CLAUDE_CMD "Fix the test failures found in tmp/elm-test.log"
+            else
+                # Claude is a regular command
+                "$CLAUDE_CMD" "Fix the test failures found in tmp/elm-test.log"
+            fi
+            
+            echo "🔄 Re-running tests to verify fixes..."
+            if elm-test-rs --compiler $(which lamdera); then
+                echo "✅ Claude successfully fixed the test failures!"
+                rm -f tmp/elm-test.log
+            else
+                echo "⚠️  Some test failures remain after Claude's fixes."
+                echo "   Please check the failing tests."
+                echo "   Log file: tmp/elm-test.log"
+                exit 1
+            fi
+        else
+            echo "   Please fix failing tests before committing."
+            echo "   Log file: tmp/elm-test.log"
+            exit 1
+        fi
+    else
+        echo "   Please fix failing tests before committing."
+        echo "   Log file: tmp/elm-test.log"
+        echo "   💡 Install Claude CLI for auto-fixing: https://claude.ai/code"
+        exit 1
+    fi
+else
+    echo "✅ All tests passed!"
+fi
+
+# 4. Run elm-review with auto-fix
+echo "🔎 Running elm-review..."
+if ! elm-review --fix-all-without-prompt; then
+    echo "❌ elm-review found issues that couldn't be auto-fixed!"
+    
+    # Create tmp directory if it doesn't exist
+    mkdir -p tmp
+    
+    # Capture elm-review output to log file
+    echo "📝 Capturing elm-review issues to tmp/elm-review.log..."
+    elm-review > tmp/elm-review.log 2>&1
+    
+    # Check if claude CLI is available
+    CLAUDE_CMD=$(find_claude)
+    if [ $? -eq 0 ] && [ -n "$CLAUDE_CMD" ]; then
+        echo "   ✓ Claude CLI found: $CLAUDE_CMD"
+        echo ""
+        echo "🤖 Would you like Claude to automatically fix these elm-review issues?"
+        # Read from /dev/tty to ensure we can get user input in git hook
+        read -p "   Run Claude auto-fix? (y/n): " -n 1 -r < /dev/tty
+        echo ""
+        
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "🔧 Running Claude to fix elm-review issues..."
+            # Handle different ways claude might be available
+            if [[ "$CLAUDE_CMD" == *" -l -c claude" ]]; then
+                # Claude needs to be run through a login shell
+                $CLAUDE_CMD "Fix the elm-review errors found in tmp/elm-review.log"
+            else
+                # Claude is a regular command
+                "$CLAUDE_CMD" "Fix the elm-review errors found in tmp/elm-review.log"
+            fi
+            
+            echo "🔄 Re-running elm-review to verify fixes..."
+            if elm-review --fix-all-without-prompt; then
+                echo "✅ Claude successfully fixed the elm-review issues!"
+                rm -f tmp/elm-review.log
+            else
+                echo "⚠️  Some issues remain after Claude's fixes."
+                echo "   Please run 'elm-review' to see remaining issues."
+                echo "   Log file: tmp/elm-review.log"
+                exit 1
+            fi
+        else
+            echo "   Please run 'elm-review' to see the issues."
+            echo "   Log file: tmp/elm-review.log"
+            exit 1
+        fi
+    else
+        echo "   Please run 'elm-review' to see the issues."
+        echo "   Log file: tmp/elm-review.log"
+        echo "   💡 Install Claude CLI for auto-fixing: https://claude.ai/code"
+        exit 1
+    fi
+else
+    echo "✅ elm-review passed!"
+fi
+# Add any files that were modified by elm-format or elm-review
+echo "📝 Checking for files modified by elm-format or elm-review..."
+if ! git diff --quiet; then
+    echo "🔄 Adding files modified by elm-format or elm-review..."
+    git add -u
+    echo "✅ Modified files have been staged"
+fi
+
+echo "🎉 Pre-commit checks passed. Proceeding with commit..."
+
+exit 0

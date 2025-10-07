@@ -128,11 +128,13 @@ elm-test-rs --compiler $(which lamdera)
 ## Authentication Setup
 
 The generated app includes authentication scaffolding for:
+
 - Google One Tap sign-in
 - GitHub OAuth
 - Email authentication
 
 To enable authentication:
+
 1. Set up OAuth apps with Google/GitHub
 2. Add your credentials to `auth-env.elm`
 3. Configure callback URLs
@@ -147,6 +149,7 @@ To enable authentication:
 ## Testing
 
 Example tests are included using `lamdera-program-test`. The tests demonstrate:
+
 - User interactions (clicks, form inputs)
 - Frontend message handling
 - Backend communication

@@ -4,5 +4,5 @@ module.exports = {
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coveragePathIgnorePatterns: ['/node_modules/', '/templates/'],
-  testTimeout: 30000
+  testTimeout: 30000,
 };

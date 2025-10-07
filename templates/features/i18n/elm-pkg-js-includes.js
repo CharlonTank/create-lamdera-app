@@ -5,5 +5,5 @@ const localStorage = require('./elm-pkg-js/localStorage');
 
 // Export the initialization function
 exports.init = async function init(app) {
-    localStorage.init(app);
-}
+  localStorage.init(app);
+};

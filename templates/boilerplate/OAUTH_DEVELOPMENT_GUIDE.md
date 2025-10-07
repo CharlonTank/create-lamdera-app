@@ -5,6 +5,7 @@
 ### Backend State Loss During OAuth Flow
 
 In Lamdera development mode, the backend frequently restarts when files are modified. This causes the `pendingAuths` dictionary to be cleared, breaking the OAuth flow. You'll see errors like:
+
 - "Couldn't validate auth, please login again"
 - "bad_verification_code" (GitHub)
 - Empty `pendingAuths` dictionary in logs
@@ -12,7 +13,9 @@ In Lamdera development mode, the backend frequently restarts when files are modi
 ### Solutions
 
 #### 1. Stop File Watchers During Testing
+
 Stop any file watchers (like `lamdera-dev-watch.sh`) while testing OAuth:
+
 ```bash
 # Kill the watcher process
 pkill -f lamdera-dev-watch
@@ -22,25 +25,31 @@ lamdera live
 ```
 
 #### 2. Test in Production
+
 OAuth flows work reliably in production where backend state persists:
+
 ```bash
 lamdera deploy
 ```
 
 #### 3. Use Mock Authentication in Development
+
 For development, use the email/password mock authentication instead of OAuth. OAuth can be tested in staging/production environments.
 
 #### 4. Quick Testing Strategy
+
 1. Make all your code changes first
 2. Stop file watchers
-3. Run `lamdera live` 
+3. Run `lamdera live`
 4. Test OAuth flow without modifying any files
 5. Resume development after testing
 
 ## Debugging Tips
 
 ### Enable Debug Logging
+
 The OAuth module includes debug logging. Look for:
+
 - "OAuth initiate - sessionId"
 - "OAuth initiate - state"
 - "OAuth callback - sessionId"
@@ -55,6 +64,7 @@ The OAuth module includes debug logging. Look for:
 ### Testing Checklist
 
 Before testing OAuth in development:
+
 - [ ] All code changes are complete
 - [ ] File watchers are stopped
 - [ ] Browser cache/cookies cleared (if testing multiple times)

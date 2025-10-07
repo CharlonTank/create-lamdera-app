@@ -85,8 +85,8 @@ test =
         |> Effect.Test.connectFrontend 0 sessionId "/" { width = 1920, height = 1080 }
             (\frontendActions ->
                 [ frontendActions.click 100 { htmlId = "submit-button" }
-                , frontendActions.checkModel 200 
-                    (\model -> 
+                , frontendActions.checkModel 200
+                    (\model ->
                         if model.submitted then Ok ()
                         else Err "Form should be submitted"
                     )
@@ -166,10 +166,10 @@ Initializes a new test with the given name, start time, configuration, and initi
 ### Connecting Frontends
 
 ```elm
-connectFrontend : 
-    DelayInMs 
-    -> SessionId 
-    -> String 
+connectFrontend :
+    DelayInMs
+    -> SessionId
+    -> String
     -> { width : Int, height : Int }
     -> (FrontendActions -> List Action)
     -> Action
@@ -258,8 +258,8 @@ clickButtonTest =
         |> Effect.Test.connectFrontend 0 sessionId "/" windowSize
             (\frontend ->
                 [ frontend.click 100 { htmlId = "submit-btn" }
-                , frontend.checkModel 200 
-                    (\model -> 
+                , frontend.checkModel 200
+                    (\model ->
                         if model.formSubmitted then Ok ()
                         else Err "Form should be submitted after click"
                     )
@@ -279,8 +279,8 @@ formInputTest =
                 [ frontend.input 100 { htmlId = "name-input" } "John Doe"
                 , frontend.input 200 { htmlId = "email-input" } "john@example.com"
                 , frontend.click 300 { htmlId = "submit-btn" }
-                , frontend.checkView 400 
-                    (Test.Html.Query.has 
+                , frontend.checkView 400
+                    (Test.Html.Query.has
                         [ Test.Html.Selector.text "Thank you, John Doe!" ])
                 ]
             )
@@ -320,7 +320,7 @@ httpRequestTest =
     let
         config2 =
             { config
-                | handleHttpRequest = 
+                | handleHttpRequest =
                     \{ currentRequest } ->
                         if currentRequest.url == "/api/data" then
                             Effect.Test.JsonHttpResponse
@@ -329,7 +329,7 @@ httpRequestTest =
                                 , url = currentRequest.url
                                 , statusText = "OK"
                                 }
-                                (Json.Encode.object 
+                                (Json.Encode.object
                                     [ ("data", Json.Encode.string "test data") ])
                         else
                             Effect.Test.UnhandledHttpRequest
@@ -358,13 +358,13 @@ fileUploadTest =
     let
         config2 =
             { config
-                | handleFileUpload = 
+                | handleFileUpload =
                     \_ ->
-                        Effect.Test.UploadFile 
-                            (Effect.Test.uploadStringFile 
-                                "test.txt" 
-                                "text/plain" 
-                                "Hello, world!" 
+                        Effect.Test.UploadFile
+                            (Effect.Test.uploadStringFile
+                                "test.txt"
+                                "text/plain"
+                                "Hello, world!"
                                 (Time.millisToPosix 0))
             }
     in
@@ -375,7 +375,7 @@ fileUploadTest =
                 , frontend.checkModel 500
                     (\model ->
                         case model.uploadedFile of
-                            Just file -> 
+                            Just file ->
                                 if file.name == "test.txt" then Ok ()
                                 else Err "Wrong file uploaded"
                             Nothing -> Err "No file uploaded"
@@ -486,16 +486,19 @@ main =
 ### Common Issues
 
 1. **"Event not found" errors**
+
    - Ensure the element has the correct `id` attribute
    - Check that the event listener is properly attached
    - Verify the element is rendered when the event is triggered
 
 2. **Timing issues**
+
    - Use appropriate delays between actions
    - Consider using `checkModel` or `checkView` to wait for state changes
    - Use `andThen` for conditional timing
 
 3. **HTTP request handling**
+
    - Ensure your `handleHttpRequest` function matches the exact URL
    - Return appropriate response types (Json, String, Bytes, etc.)
    - Check request method and headers if needed
