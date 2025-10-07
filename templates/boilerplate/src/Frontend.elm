@@ -10,10 +10,11 @@ import Effect.Lamdera exposing (sendToBackend)
 import Effect.Subscription as Subscription exposing (Subscription)
 import Effect.Task
 import Effect.Time
+import Env
 import GoogleOneTap
 import Html exposing (..)
 import Html.Attributes as Attr exposing (class, id)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onCheck)
 import I18n exposing (Language(..), Translations)
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -92,6 +93,10 @@ init url key =
 
             -- Default to UTC, will be updated when we get the actual timezone
             , timezone = Time.utc
+            
+            -- Config panel
+            , configPanelOpen = True
+            , maintenanceMode = False
             }
 
         -- Check if this is an OAuth callback using the router
@@ -302,6 +307,16 @@ updateBasic msg model =
 
         GotTimezone zone ->
             ( { model | timezone = zone }
+            , Command.none
+            )
+        
+        CloseConfigPanel ->
+            ( { model | configPanelOpen = False }
+            , Command.none
+            )
+        
+        ToggleMaintenanceMode ->
+            ( { model | maintenanceMode = not model.maintenanceMode }
             , Command.none
             )
 
@@ -643,22 +658,31 @@ view model =
                     ""
                 )
             ]
-            [ div [ class "min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 dark:from-purple-900 dark:via-pink-900 dark:to-red-900 transition-colors duration-300" ]
-                [ div [ class "container mx-auto px-4 py-8" ]
-                    [ -- Header with navigation, language and theme switchers
-                      viewHeader t model
+            [ if model.maintenanceMode then
+                viewMaintenancePage t
+              else
+                div [ class "min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 dark:from-purple-900 dark:via-pink-900 dark:to-red-900 transition-colors duration-300" ]
+                    [ div [ class "container mx-auto px-4 py-8" ]
+                        [ -- Header with navigation, language and theme switchers
+                          viewHeader t model
 
-                    -- Page content
-                    , viewPage t model
+                        -- Page content
+                        , viewPage t model
 
-                    -- Footer
-                    , div [ class "mt-16 text-center text-white/80" ]
-                        [ p [ class "mb-2" ] [ text t.editMessage ]
-                        , p [ class "text-sm" ]
-                            [ text t.tailwindMessage ]
+                        -- Footer
+                        , div [ class "mt-16 text-center text-white/80" ]
+                            [ p [ class "mb-2" ] [ text t.editMessage ]
+                            , p [ class "text-sm" ]
+                                [ text t.tailwindMessage ]
+                            ]
                         ]
                     ]
-                ]
+            
+            -- Config panel (development only)
+            , if Env.environment /= "production" && model.configPanelOpen then
+                viewConfigPanel t model
+              else
+                text ""
             ]
         ]
     }
@@ -880,6 +904,119 @@ viewNotFound t =
                 , class "inline-block px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors duration-200"
                 ]
                 [ text t.goHomeButton ]
+            ]
+        ]
+
+
+viewMaintenancePage : Translations -> Html FrontendMsg
+viewMaintenancePage t =
+    div [ class "min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 dark:from-purple-900 dark:via-pink-900 dark:to-red-900 flex items-center justify-center" ]
+        [ div [ class "text-center text-white" ]
+            [ h1 [ class "text-6xl font-bold mb-4" ] [ text t.maintenanceTitle ]
+            , p [ class "text-2xl" ] [ text t.maintenanceMessage ]
+            ]
+        ]
+
+
+viewConfigPanel : Translations -> FrontendModel -> Html FrontendMsg
+viewConfigPanel t model =
+    div [ class "fixed bottom-14 left-4 z-50 bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg shadow-lg border-2 border-yellow-400" ]
+        [ button
+            [ onClick (BasicFrontendMsg CloseConfigPanel)
+            , class "absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            ]
+            [ text "✕" ]
+        , div [ class "text-sm font-mono text-gray-700 dark:text-gray-300 mb-2" ]
+            [ text ("ENV: " ++ Env.environment) ]
+        , label [ class "flex items-center cursor-pointer" ]
+            [ input
+                [ Attr.type_ "checkbox"
+                , Attr.checked model.maintenanceMode
+                , onCheck (\_ -> BasicFrontendMsg ToggleMaintenanceMode)
+                , class "mr-2 h-5 w-5 text-yellow-600 rounded focus:ring-yellow-500"
+                ]
+                []
+            , span [ class "text-sm font-semibold text-gray-700 dark:text-gray-300" ]
+                [ text t.maintenanceModeLabel ]
+            ]
+        , div [ class "mt-3 pt-3 border-t border-yellow-400" ]
+            [ div [ class "flex items-center justify-between" ]
+                [ span [ class "text-sm font-semibold text-gray-700 dark:text-gray-300" ]
+                    [ text t.language ]
+                , div [ class "flex gap-2" ]
+                    [ button
+                        [ onClick (BasicFrontendMsg (ChangeLanguage FR))
+                        , class
+                            ("px-3 py-1 text-xs font-medium rounded transition-colors "
+                                ++ (if model.localStorage.language == FR then
+                                        "bg-yellow-600 text-white"
+                                    else
+                                        "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                   )
+                            )
+                        ]
+                        [ text "FR" ]
+                    , button
+                        [ onClick (BasicFrontendMsg (ChangeLanguage EN))
+                        , class
+                            ("px-3 py-1 text-xs font-medium rounded transition-colors "
+                                ++ (if model.localStorage.language == EN then
+                                        "bg-yellow-600 text-white"
+                                    else
+                                        "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                   )
+                            )
+                        ]
+                        [ text "EN" ]
+                    ]
+                ]
+            ]
+        , div [ class "mt-3 pt-3 border-t border-yellow-400" ]
+            [ div [ class "flex items-center justify-between" ]
+                [ span [ class "text-sm font-semibold text-gray-700 dark:text-gray-300" ]
+                    [ text t.theme ]
+                , div [ class "flex gap-1" ]
+                    [ button
+                        [ onClick (BasicFrontendMsg (ChangeTheme LightMode))
+                        , class
+                            ("px-2 py-1 text-xs font-medium rounded transition-colors "
+                                ++ (if model.localStorage.userPreference == LightMode then
+                                        "bg-yellow-600 text-white"
+                                    else
+                                        "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                   )
+                            )
+                        , Attr.title t.lightTheme
+                        ]
+                        [ text "☀️" ]
+                    , button
+                        [ onClick (BasicFrontendMsg (ChangeTheme DarkMode))
+                        , class
+                            ("px-2 py-1 text-xs font-medium rounded transition-colors "
+                                ++ (if model.localStorage.userPreference == DarkMode then
+                                        "bg-yellow-600 text-white"
+                                    else
+                                        "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                   )
+                            )
+                        , Attr.title t.darkTheme
+                        ]
+                        [ text "🌙" ]
+                    , button
+                        [ onClick (BasicFrontendMsg (ChangeTheme SystemMode))
+                        , class
+                            ("px-2 py-1 text-xs font-medium rounded transition-colors "
+                                ++ (if model.localStorage.userPreference == SystemMode then
+                                        "bg-yellow-600 text-white"
+                                    else
+                                        "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                   )
+                            )
+                        , Attr.title t.systemTheme
+                        ]
+                        [ text "💻" ]
+                    ]
+                ]
             ]
         ]
 

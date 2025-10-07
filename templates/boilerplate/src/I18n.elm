@@ -181,6 +181,11 @@ type alias Translations =
     , tailwindIntegrationDesc : String
     , testSupport : String
     , testSupportDesc : String
+    
+    -- Maintenance mode
+    , maintenanceModeLabel : String
+    , maintenanceTitle : String
+    , maintenanceMessage : String
     }
 
 
@@ -362,6 +367,11 @@ translations lang =
             , tailwindIntegrationDesc = "Beautiful, responsive design with utility-first CSS"
             , testSupport = "Test Support"
             , testSupportDesc = "lamdera-program-test integration for reliable testing"
+            
+            -- Maintenance mode
+            , maintenanceModeLabel = "Maintenance Mode"
+            , maintenanceTitle = "Maintenance"
+            , maintenanceMessage = "This site is under maintenance"
             }
 
         FR ->
@@ -533,6 +543,11 @@ translations lang =
             , tailwindIntegrationDesc = "Design beau et responsive avec CSS utilitaire"
             , testSupport = "Support de Tests"
             , testSupportDesc = "Intégration lamdera-program-test pour des tests fiables"
+            
+            -- Maintenance mode
+            , maintenanceModeLabel = "Mode Maintenance"
+            , maintenanceTitle = "Maintenance"
+            , maintenanceMessage = "Ce site est en maintenance"
             }
 
 

@@ -79,6 +79,10 @@ type alias FrontendModel =
 
     -- Time and timezone
     , timezone : Time.Zone
+    
+    -- Config panel
+    , configPanelOpen : Bool
+    , maintenanceMode : Bool
     }
 
 
@@ -139,6 +143,9 @@ type BasicFrontendMsg
     | UpdateRegisterForm RegisterForm
     | GoogleOneTapResponseReceived String
     | GoogleOneTapStatusReceived GoogleOneTap.OneTapStatus
+      -- Config panel
+    | CloseConfigPanel
+    | ToggleMaintenanceMode
 
 
 type LoggedInUserFrontendMsg

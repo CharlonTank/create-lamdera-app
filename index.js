@@ -26,14 +26,8 @@ const parseArgs = () => {
     init: false,
     installPrecommit: false,
     name: null,
-    cursor: true,  // Always enabled
     github: null,
     visibility: 'private',
-    tailwind: true,  // Always enabled
-    test: true,      // Always enabled
-    i18n: true,      // Always enabled
-    auth: true,      // Always enabled
-    boilerplate: false,
     skipInstall: false,
     packageManager: 'npm' // default to npm
   };
@@ -58,7 +52,6 @@ const parseArgs = () => {
         parsed.name = nextArg;
         i++;
         break;
-      // Cursor flag removed - always enabled
       case '--github':
         if (nextArg && (nextArg === 'yes' || nextArg === 'y' || nextArg === 'no' || nextArg === 'n')) {
           parsed.github = nextArg === 'yes' || nextArg === 'y';
@@ -77,7 +70,6 @@ const parseArgs = () => {
       case '--private':
         parsed.visibility = 'private';
         break;
-      // Feature flags removed - all features always enabled
       case '--skip-install':
         parsed.skipInstall = true;
         break;
@@ -93,9 +85,6 @@ const parseArgs = () => {
         break;
       case '--bun':
         parsed.packageManager = 'bun';
-        break;
-      case '--boilerplate':
-        parsed.boilerplate = true;
         break;
     }
   }
@@ -119,8 +108,7 @@ ${chalk.bold('Usage:')}
   npx @CharlonTank/create-lamdera-app [options]
 
 ${chalk.bold('Options:')}
-  --init              Add utilities to an existing Lamdera project
-  --name, -n <name>   Project name (required for new projects in non-interactive mode)
+  --name, -n <name>   Project name (required in non-interactive mode)
   --github <yes|no>   Create GitHub repository (yes/no)
   --no-github         Don't create GitHub repository
   --public            Make GitHub repository public
@@ -129,17 +117,18 @@ ${chalk.bold('Options:')}
   --package-manager <npm|bun>  Choose package manager (default: npm)
   --pm <npm|bun>      Shorthand for --package-manager
   --bun               Use Bun package manager
-  --boilerplate       Use boilerplate template (includes all features)
   --version           Show version number
   --help, -h          Show this help message
 
-${chalk.bold('Included Features:')}
-  • Tailwind CSS for styling
-  • lamdera-program-test for testing
-  • Internationalization (i18n) and dark mode
-  • Authentication (Google, GitHub, Email)
-  • Cursor editor support
-  • Pre-commit hooks
+${chalk.bold('Included Features (always):')}
+  ✓ Tailwind CSS for styling
+  ✓ lamdera-program-test for testing
+  ✓ Internationalization (i18n) with EN/FR
+  ✓ Dark mode support
+  ✓ Authentication (Google, GitHub, Email)
+  ✓ Development config panel
+  ✓ Cursor IDE integration
+  ✓ Pre-commit hooks with elm-review
 
 ${chalk.bold('Examples:')}
   ${chalk.gray('# Create a new Lamdera project interactively')}
@@ -153,12 +142,6 @@ ${chalk.bold('Examples:')}
 
   ${chalk.gray('# Use Bun for faster package installation')}
   npx @CharlonTank/create-lamdera-app --name my-app --bun
-
-  ${chalk.gray('# Add utilities to existing project')}
-  npx @CharlonTank/create-lamdera-app --init
-
-  ${chalk.gray('# Install pre-commit hooks in existing project')}
-  npx @CharlonTank/create-lamdera-app --install-precommit
 `);
   process.exit(0);
 }
@@ -704,7 +687,7 @@ function initializeLamderaProject(projectPath) {
 }
 
 // Initialize from boilerplate - copies complete boilerplate project
-function initializeFromBoilerplate(projectPath) {
+function initializeFromBoilerplate(projectPath, packageManager) {
   const boilerplatePath = path.join(__dirname, 'templates', 'boilerplate');
   
   if (!fs.existsSync(boilerplatePath)) {
@@ -737,6 +720,22 @@ function initializeFromBoilerplate(projectPath) {
   };
 
   copyRecursive(boilerplatePath, projectPath);
+  
+  // Update package.json scripts based on package manager
+  const packageJsonPath = path.join(projectPath, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const runner = packageManager === 'bun' ? 'bunx' : 'npx';
+    
+    packageJson.scripts = {
+      ...packageJson.scripts,
+      "start": `${runner} concurrently -k -s first "lamdera live --port=\${PORT:-8000}" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+      "start:hot": `${runner} concurrently -k -s first "PORT=\${PORT:-8000} ./lamdera-dev-watch.sh" "${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch"`,
+      "start:ci": `(lamdera live --port=\${PORT:-8000} &) && ${runner} tailwindcss -i ./src/styles.css -o ./public/styles.css --watch`
+    };
+    
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  }
 }
 
 async function initializeExistingProject() {
@@ -940,13 +939,8 @@ tmp/
 async function createNewProject() {
   try {
     let projectName = parsedArgs.name;
-    let useCursor = parsedArgs.cursor;
     let createRepo = parsedArgs.github;
     let repoVisibility = parsedArgs.visibility;
-    let useTailwind = parsedArgs.tailwind;
-    let useTest = parsedArgs.test;
-    let useI18n = parsedArgs.i18n;
-    let useAuth = parsedArgs.auth;
 
     // Get project name if not provided
     if (!projectName) {
@@ -979,9 +973,6 @@ async function createNewProject() {
       process.exit(1);
     }
 
-    // All features are enabled by default (cursor, tailwind, test, i18n, auth)
-    // No need to ask for preferences
-
     const projectPath = path.join(process.cwd(), projectName);
 
     // Check if directory already exists
@@ -994,67 +985,17 @@ async function createNewProject() {
     fs.mkdirSync(projectPath);
     process.chdir(projectPath);
 
-    // Check if using boilerplate
-    if (parsedArgs.boilerplate) {
-      // Use boilerplate approach - copy everything from ~/projects/boilerplate
-      initializeFromBoilerplate(projectPath);
-      
-      // Copy pre-commit hook for boilerplate
-      console.log(chalk.blue('Setting up pre-commit hooks...'));
-      const githooksDir = path.join(projectPath, '.githooks');
-      fs.mkdirSync(githooksDir, { recursive: true });
-      
-      const preCommitSource = path.join(__dirname, 'templates', 'features', 'test', '.githooks', 'pre-commit');
-      const preCommitDest = path.join(githooksDir, 'pre-commit');
-      fs.copyFileSync(preCommitSource, preCommitDest);
-      fs.chmodSync(preCommitDest, '755');
-      
-      // Run npm/bun install if not skipped
-      if (!parsedArgs.skipInstall) {
-        const pm = parsedArgs.packageManager;
-        console.log(chalk.yellow(`\n📦 Installing dependencies with ${pm}...`));
-        if (pm === 'bun') {
-          execCommand('bun install', true);
-        } else {
-          execCommand('npm install', true);
-        }
-      }
-    } else {
-      // Original approach with individual features
-      // Initialize Lamdera project
-      console.log(chalk.blue('Initializing Lamdera project...'));
-      initializeLamderaProject(projectPath);
-
-      // Create utility files
-      console.log(chalk.blue('Creating utility files...'));
-      createUtilityFiles(projectPath, useCursor, useTest);
-
-      // Set up Tailwind if requested
-      if (useTailwind && !useTest && !useI18n) {
-        setupTailwind(projectPath, __dirname, false, parsedArgs.skipInstall, parsedArgs.packageManager);
-      } else if (useTailwind && !useTest && useI18n) {
-        // When both Tailwind and i18n are enabled, setup Tailwind infrastructure but let i18n handle Frontend
-        setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall, parsedArgs.packageManager);
-      }
-
-      // Set up lamdera-program-test if requested
-      if (useTest) {
-        setupLamderaTest(projectPath, __dirname);
-        // If both Tailwind and test are enabled, set up Tailwind after test
-        if (useTailwind) {
-          console.log(chalk.yellow('Note: When using lamdera-program-test with Tailwind, you\'ll need to manually integrate Tailwind examples.'));
-          setupTailwind(projectPath, __dirname, true, parsedArgs.skipInstall, parsedArgs.packageManager);
-        }
-      }
-
-      // Set up i18n if requested
-      if (useI18n) {
-        setupI18n(projectPath, __dirname, useTest, useTailwind);
-      }
-
-      // Set up authentication if requested
-      if (useAuth) {
-        setupAuth(projectPath, __dirname, useTest, useI18n);
+    // ALWAYS use boilerplate - it includes all features
+    initializeFromBoilerplate(projectPath, parsedArgs.packageManager);
+    
+    // Run npm/bun install if not skipped
+    if (!parsedArgs.skipInstall) {
+      const pm = parsedArgs.packageManager;
+      console.log(chalk.yellow(`\n📦 Installing dependencies with ${pm}...`));
+      if (pm === 'bun') {
+        execCommand('bun install', true);
+      } else {
+        execCommand('npm install', true);
       }
     }
 
@@ -1081,8 +1022,8 @@ async function createNewProject() {
         console.log(chalk.blue('Creating GitHub repository...'));
         execCommand('git init');
         
-        // Configure git hooks if test mode is enabled or using boilerplate
-        if ((parsedArgs.boilerplate || useTest) && fs.existsSync(path.join(projectPath, '.githooks', 'pre-commit'))) {
+        // Configure git hooks (boilerplate always includes pre-commit)
+        if (fs.existsSync(path.join(projectPath, '.githooks', 'pre-commit'))) {
           configureGitHooks(projectPath);
         }
         
@@ -1096,62 +1037,39 @@ async function createNewProject() {
       }
     }
 
-    console.log(chalk.green('Project setup complete!'));
+    console.log(chalk.green('\n✨ Project setup complete!'));
+    console.log('');
     const pm = parsedArgs.packageManager;
-    console.log(chalk.blue('To start development server:'));
-    console.log(chalk.cyan(`cd ${projectName}`));
+    console.log(chalk.blue('📦 To start development:'));
+    console.log(chalk.cyan(`  cd ${projectName}`));
     
-    // For boilerplate, always show tailwind commands since it includes everything
-    if (parsedArgs.boilerplate || useTailwind) {
-      if (parsedArgs.skipInstall) {
-        console.log(chalk.yellow(`\n⚠️  ${pm} install was skipped`));
-        console.log(chalk.cyan(`${pm} install`));
-        console.log(chalk.gray('(Run this first to install dependencies)'));
-        console.log('');
-      }
-      console.log(chalk.cyan(`${pm} ${pm === 'bun' ? 'run' : ''} start`));
-      console.log(chalk.gray('(This runs both Lamdera and Tailwind CSS watcher)'));
-      console.log('');
-      console.log(chalk.blue('To use a different port:'));
-      console.log(chalk.cyan(`PORT=3000 ${pm} ${pm === 'bun' ? 'run' : ''} start`));
-      console.log('');
-      console.log(chalk.blue('For hot-reload with elm-pkg-js:'));
-      console.log(chalk.cyan(`${pm} run start:hot`));
-      console.log(chalk.gray(`(Also supports PORT=3000 ${pm} run start:hot)`));
-    } else {
-      console.log(chalk.cyan('./lamdera-dev-watch.sh'));
-      console.log('');
-      console.log(chalk.blue('To use a different port:'));
-      console.log(chalk.cyan('./lamdera-dev-watch.sh --port=3000'));
-      console.log(chalk.gray('or'));
-      console.log(chalk.cyan('PORT=3000 ./lamdera-dev-watch.sh'));
+    if (parsedArgs.skipInstall) {
+      console.log(chalk.yellow(`  ${pm} install ${chalk.gray('(install dependencies first)')}`));
     }
     
-    if (parsedArgs.boilerplate || useTest) {
-      console.log('');
-      console.log(chalk.blue('Test examples included:'));
-      console.log(chalk.gray('Check tests/Tests.elm for lamdera-program-test examples'));
-      console.log(chalk.gray('To run: elm-test-rs --compiler $(which lamdera)'));
-    }
-    
-    if (parsedArgs.boilerplate || useI18n) {
-      console.log('');
-      console.log(chalk.blue('i18n and dark mode features:'));
-      console.log(chalk.gray('- Language switcher (EN/FR) in the header'));
-      console.log(chalk.gray('- Dark/Light/System theme selector'));
-      console.log(chalk.gray('- Preferences persist in localStorage'));
-      console.log(chalk.gray('- Auto-detects browser language and system theme'));
-    }
-    
-    if (parsedArgs.boilerplate) {
-      console.log('');
-      console.log(chalk.blue('Authentication features:'));
-      console.log(chalk.gray('- Google One Tap login'));
-      console.log(chalk.gray('- GitHub OAuth'));
-      console.log(chalk.gray('- Email/password authentication'));
-      console.log(chalk.gray('- Admin panel at /admin'));
-      console.log(chalk.gray('See GOOGLE_ONE_TAP_SETUP.md and GITHUB_OAUTH_SETUP.md for OAuth setup'));
-    }
+    console.log(chalk.cyan(`  ${pm} ${pm === 'bun' ? 'run ' : ''}start ${chalk.gray('(runs Lamdera + Tailwind watcher)')}`));
+    console.log('');
+    console.log(chalk.blue('🔧 Development commands:'));
+    console.log(chalk.cyan(`  PORT=3000 ${pm} ${pm === 'bun' ? 'run ' : ''}start ${chalk.gray('(custom port)')}`));
+    console.log(chalk.cyan(`  ${pm} run start:hot ${chalk.gray('(with elm-pkg-js hot-reload)')}`));
+    console.log('');
+    console.log(chalk.blue('🧪 Testing:'));
+    console.log(chalk.gray('  Check tests/Tests.elm for lamdera-program-test examples'));
+    console.log(chalk.cyan('  elm-test-rs --compiler $(which lamdera)'));
+    console.log('');
+    console.log(chalk.blue('🌐 Features included:'));
+    console.log(chalk.gray('  • Tailwind CSS + Dark mode'));
+    console.log(chalk.gray('  • i18n (EN/FR) with localStorage'));
+    console.log(chalk.gray('  • Authentication (Google, GitHub, Email)'));
+    console.log(chalk.gray('  • lamdera-program-test integration'));
+    console.log(chalk.gray('  • Development config panel (bottom-left in dev mode)'));
+    console.log(chalk.gray('  • Pre-commit hooks with elm-review'));
+    console.log('');
+    console.log(chalk.blue('📚 Documentation:'));
+    console.log(chalk.gray('  • HOW_TO_WRITE_TESTS.md'));
+    console.log(chalk.gray('  • GOOGLE_ONE_TAP_SETUP.md'));
+    console.log(chalk.gray('  • GITHUB_OAUTH_SETUP.md'));
+    console.log('');
   } finally {
     if (rl) {
       rl.close();

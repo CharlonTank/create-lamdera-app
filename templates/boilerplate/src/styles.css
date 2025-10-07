@@ -1,3 +1,128 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+  }
+  
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  *::-webkit-scrollbar-track {
+    @apply bg-transparent rounded-full;
+  }
+  
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full transition-colors duration-200;
+  }
+  
+  * {
+    scrollbar-color: rgb(209 213 219) transparent;
+  }
+  
+  *::-webkit-scrollbar-thumb {
+    @apply bg-gray-300;
+  }
+  
+  *::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+  
+  .dark * {
+    scrollbar-color: rgb(75 85 99) transparent;
+  }
+  
+  .dark *::-webkit-scrollbar-thumb {
+    @apply bg-gray-600;
+  }
+  
+  .dark *::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(209 213 219) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 100px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(209 213 219);
+    border-radius: 100px;
+    transition: background 0.2s;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(156 163 175);
+  }
+  
+  .custom-scrollbar-mini {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(229 231 235) transparent;
+  }
+  
+  .custom-scrollbar-mini::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .custom-scrollbar-mini::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 100px;
+  }
+  
+  .custom-scrollbar-mini::-webkit-scrollbar-thumb {
+    background: rgb(229 231 235);
+    border-radius: 100px;
+    transition: background 0.2s;
+  }
+  
+  .custom-scrollbar-mini::-webkit-scrollbar-thumb:hover {
+    background: rgb(209 213 219);
+  }
+  
+  .dark .custom-scrollbar {
+    scrollbar-color: rgb(75 85 99) transparent;
+  }
+  
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(75 85 99);
+  }
+  
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(107 114 128);
+  }
+  
+  .dark .custom-scrollbar-mini {
+    scrollbar-color: rgb(107 114 128) transparent;
+  }
+  
+  .dark .custom-scrollbar-mini::-webkit-scrollbar-thumb {
+    background: rgb(107 114 128);
+  }
+  
+  .dark .custom-scrollbar-mini::-webkit-scrollbar-thumb:hover {
+    background: rgb(75 85 99);
+  }
+}
+
+@layer components {
+  .workspace-selector-icon {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+  }
+}
